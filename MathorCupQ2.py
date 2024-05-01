@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 from typing import Callable, Generator
 import pandas as pd
+from QuboUtil import QuboUtil
 import kaiwu as kw
 from math import log2, ceil
 from typing import List, Dict
@@ -95,11 +96,13 @@ total_cost_expression = kw.qubo.sum(
 
 cost_s_expression = kw.qubo.sum(cost_con_s[i] * (2**i) for i in range(cost_con_num))
 # 构建成本约束
-budget_constraint = kw.qubo.constraint( (total_budget - total_cost_expression - cost_s_expression) ** 2, name = "budget")
+# budget_constraint = kw.qubo.constraint( (total_budget - total_cost_expression - cost_s_expression) ** 2, name = "budget")
+qubo = QuboUtil()
+budget_constraint = qubo.convert_qubo_constraint(total_budget - total_cost_expression - cost_s_expression, "budget")
 
 
 # 分配的矿车数量小于矿车总数的约束
-truck_constraints : Dict[str, float] = {}
+truck_constraints = {}
 for j in range(J):
     truck_constraints[f'tru_con{j}'] = kw.qubo.constraint(
         (n[j] - kw.qubo.sum(kw.qubo.sum(k[f'k_{i}_{j}'][m] * (2**m) for m in range(len(k[f'k_{i}_{j}']))) for i in range(I) if f'k_{i}_{j}' in k)
@@ -175,7 +178,7 @@ print(sol_dict)
 obj_val = kw.qubo.get_val(obj, sol_dict)
 objective_function_val = kw.qubo.get_val(total_revenue, sol_dict)
 budget_constraint_val = kw.qubo.get_val(budget_constraint, sol_dict)
-
+cost_con_val = qubo.read_num_from_dict(cost_con_s, sol_dict)
 truck_constraints_val = {}
 for j in range(3):
     truck_constraints_val[f'val{j}'] = kw.qubo.get_val(truck_constraints[f'tru_con{j}'], sol_dict)
@@ -226,7 +229,7 @@ if total_cost > total_budget:
     print("超出预算！")
 else:
     print("未超出预算。")
-
+print(f'cost_con_val: {cost_con_val}')
 print(f"obj Value: {obj_val}")
 print(f"objective_function Value: {objective_function_val}")
 print(f"budget_constraint Value: {budget_constraint_val}")

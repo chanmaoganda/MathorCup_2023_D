@@ -4,7 +4,7 @@ from typing import Dict, List
 class DataStorage:
     def __init__(self, total_budget: int, excavator_bucket: List[float], excavator_efficiency: List[int], excavator_oil_consumption: List[int], truck_oil_cosumption: List[int], 
                  excavator_labor_cost: List[int], truck_labor_cost: List[int], excavator_maintenance_cost: List[int], truck_maintenance_cost: List[int],
-                 excavator_precurement_cost: List[int], excavator_truck_dict: Dict[int, List[int]]):
+                 excavator_precurement_cost: List[int], excavator_truck_match_dict: Dict[int, List[int]], total_truck_numbers: List[int]):
         self.total_budget = total_budget
         self.excavator_bucket = excavator_bucket
         self.excavator_efficiency = excavator_efficiency
@@ -21,6 +21,8 @@ class DataStorage:
         self.oil_price = 7
         self.mineral_price = 10
 
-        self.excavator_truck_dict : Dict[int, List[int]] = excavator_truck_dict
-        self.excavator_kinds = len(self.excavator_truck_dict.keys())
-        self.truck_kinds = len(self.excavator_truck_dict[0]) # any element in the dictionary matches the number of truck_kinds
+        self.excavator_truck_match_dict : Dict[int, List[int]] = excavator_truck_match_dict
+        self.total_truck_numbers = total_truck_numbers
+        
+        self.excavator_kinds = len(self.excavator_truck_match_dict.keys())
+        self.truck_kinds = len(self.excavator_truck_match_dict[0]) # any element in the dictionary matches the number of truck_kinds
