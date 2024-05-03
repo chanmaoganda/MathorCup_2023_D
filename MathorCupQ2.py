@@ -49,8 +49,8 @@ m = [[1,0,0], # 0
 total_used_bits = 0
 
 # 建立变量的挖掘机
-static_y = [0,1,3]
-k_val ={'k_0_0': 7, 'k_1_0': 0, 'k_1_1': 7, 'k_2_0': 0, 'k_2_1': 0, 'k_2_2': 0, 'k_3_1': 0, 'k_3_2': 2}
+static_y = [1,2,3]
+k_val ={'k_1_0': 0, 'k_1_1': 7, 'k_2_0': 0, 'k_2_1': 7, 'k_2_2': 0, 'k_3_0': 0, 'k_3_1': 0, 'k_3_2': 2}
 # 为每种挖掘机计算最大购买数量
 max_purchases = [total_budget // cost for cost in costs]
 # 计算表示每个数量所需的二进制变量数 xi所对应的ti的数量
@@ -241,3 +241,5 @@ print(f"truck_constraints Value: {truck_constraints_val}")
 print("每种挖掘机的购买数量:")
 for k, v in machine_values.items():
     print(f"{k}: {v}")
+print(f'total_revenue: {kw.qubo.get_val(total_revenue, sol_dict) / 10000}')
+    
