@@ -6,8 +6,6 @@ class DataStorage:
                  excavator_labor_cost: List[int], truck_labor_cost: List[int], excavator_maintenance_cost: List[int], truck_maintenance_cost: List[int],
                  excavator_precurement_cost: List[int], excavator_truck_match_dict: Dict[int, List[int]], total_truck_numbers: List[int]):
         self.total_budget = total_budget
-        self.excavator_bucket = excavator_bucket
-        self.excavator_efficiency = excavator_efficiency
         self.excavator_oil_consumption = excavator_oil_consumption
         self.truck_oil_cosumption = truck_oil_cosumption
         self.excavator_labor_cost = excavator_labor_cost
@@ -26,3 +24,6 @@ class DataStorage:
         
         self.excavator_kinds = len(self.excavator_truck_match_dict.keys())
         self.truck_kinds = len(self.excavator_truck_match_dict[0]) # any element in the dictionary matches the number of truck_kinds
+        
+        self.excavator_produce_efficiency = list(( excavator_bucket[index] * excavator_efficiency[index] for index in range(self.excavator_kinds)))
+        
