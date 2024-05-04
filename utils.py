@@ -1,5 +1,5 @@
 from math import ceil, log2
-from typing import Callable, Generator, List
+from typing import Callable, Generator, List, Set
 
 def primary_generator_factory(source_array: List, map_method: Callable, index_condition: Callable) -> Generator:
     mapped_array = list(map(map_method, source_array))
@@ -16,3 +16,8 @@ def make_generator(source_array) -> Generator:
 
 def int2binary(number: int):
     return ceil(log2(number + 1))
+
+def dict_type_checker(dictionary: dict, key_type, value_type) -> bool:
+    key_type_check = all(isinstance(key, key_type) for key in dictionary.keys())
+    value_type_check = all(isinstance(value, value_type) for value in dictionary.values())
+    return key_type_check and value_type_check

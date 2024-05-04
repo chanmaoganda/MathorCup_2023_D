@@ -2,7 +2,7 @@ from typing import Callable, Dict, Generator
 
 from numpy import ndarray
 import kaiwu
-from utils import make_condition_generator, int2binary
+from utils import int2binary
 
 class QuboUtil:
     def __init__(self):
