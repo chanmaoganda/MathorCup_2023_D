@@ -21,3 +21,6 @@ def dict_type_checker(dictionary: dict, key_type, value_type) -> bool:
     key_type_check = all(isinstance(key, key_type) for key in dictionary.keys())
     value_type_check = all(isinstance(value, value_type) for value in dictionary.values())
     return key_type_check and value_type_check
+
+def dict_key_checker(dictionary: dict, key_type) -> bool:
+    return all(isinstance(key, key_type) for key in dictionary.keys())
