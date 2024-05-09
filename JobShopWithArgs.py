@@ -6,7 +6,10 @@ from numpy import ndarray
 from DataStorage import DataStorage
 from GeneratorConstraintHandler import GeneratorConstraintHandler
 from QuboUtil import QuboUtil
+from Solution import Solution
 from utils import *
+import logging
+from datetime import datetime
 
 class JobShopWithArgs:
     def __init__(self, excavators: list, trucks: list):
@@ -20,16 +23,29 @@ class JobShopWithArgs:
                                 total_truck_numbers = [7, 7, 3])
         self.qubo_util = QuboUtil()
         self.generator_constraint_handler = GeneratorConstraintHandler(self.qubo_util, self.data)
-
+        current_date = datetime.now()
+        self.logger = logging.getLogger('job_logger')
+        folder_dir = 'logs'
+        file_name = f'{folder_dir}/{current_date}.log'
+        logging.basicConfig(filename=file_name, level=logging.INFO, filemode='w')
+        self.best_solution = {0 : 7, 1 : 7, 3: 2}
+        
+        
     def solve(self):
         excavator_numbers, truck_numbers, half_used_excavator_bits, cost_con_s = self.init_quantum_variables()
-        print(f'current used bits are {self.qubo_util.total_bits}')
+        # print(f'current used bits are {self.qubo_util.total_bits}')
         budget_constraint, truck_num_constraint = self.make_qubo_constraints(excavator_numbers, truck_numbers, half_used_excavator_bits, cost_con_s)
 
         total_revenue, object, produce, oil_consume, maintenance, precurement = self.generate_qubo_model(excavator_numbers, truck_numbers, half_used_excavator_bits, budget_constraint, truck_num_constraint)
-        self.print_solution(object, total_revenue, excavator_numbers, truck_numbers, half_used_excavator_bits, cost_con_s, 
-                            budget_constraint, truck_num_constraint, produce, oil_consume, maintenance, precurement)
-
+        solution = Solution(object, total_revenue, excavator_numbers, truck_numbers, half_used_excavator_bits, cost_con_s, budget_constraint, truck_num_constraint, produce, oil_consume, maintenance, precurement)
+        # self.print_solution(solution, [0, 0])
+        # self.print_solution(solution, [0, 1])
+        # self.print_solution(solution, [0, 2])
+        # self.print_solution(solution, [0, 3])
+        # self.print_solution(solution, [0, 4])
+        arr = [[0, index] for index in range(100)]
+        for sequence in arr:
+            self.print_solution(solution, sequence)
 
     def init_quantum_variables(self):
         self.max_purchases = self.choose_min_purchase()
@@ -117,8 +133,6 @@ class JobShopWithArgs:
             current_produce = (excavator_numbers[excavator_index] - 0.5 * half_used_excavator_bits[excavator_index]) * 20 * data.excavator_produce_efficiency[excavator_index]
             excavator_produce_dict[excavator_index] = current_produce
 
-        
-        big_number = 1000000
         budget_constraint = (data.total_budget - cost_con_val - precurement_cost) ** 2
         truck_num_constraint = {excavator_index : truck_numbers[truck_index] + half_used_excavator_bits[excavator_index]
             - data.excavators_trucks_match_dict[excavator_index][truck_index] * excavator_numbers[excavator_index] for excavator_index, truck_index in self.data.excavator_truck_dict.items()}
@@ -130,78 +144,123 @@ class JobShopWithArgs:
             half_used_excavator_values_dict[excavator_index] = value
         object = handler.object_expression_factory(total_revenue, budget_constraint, truck_num_constraint)
         
-        print(f'budget_val is {budget_constraint}')
-        print(f'total_revenue_val is {total_revenue}')
-        print(f'objective value is {object}')
-        print(f'produce is {produce}')
-        print(f'oil_consume is {oil_consume}')
-        print(f'mainteinance_cost is {mainteinance_cost}')
-        print(f'precurement_cost is {precurement_cost}')
-        print(f'excavator_produce_dict is {excavator_produce_dict}')
-        print(f'half_used_excavator_values_dict is {half_used_excavator_values_dict}')        
         
-    def print_solution(self, obj, total_revenue, excavator_numbers: Dict[str, ndarray], truck_numbers: Dict[str, ndarray], half_used_excavator_bits: dict, cost_con_s, 
-                budget_constraint, truck_num_constraint, produce, oil_consume, maintenance, precurement):
+        logger = self.logger
+        # print(f'budget_val is {budget_constraint}')
+        # print(f'total_revenue_val is {total_revenue}')
+        # print(f'objective value is {object}')
+        # print(f'produce is {produce}')
+        # print(f'oil_consume is {oil_consume}')
+        # print(f'mainteinance_cost is {mainteinance_cost}')
+        # print(f'precurement_cost is {precurement_cost}')
+        # print(f'excavator_produce_dict is {excavator_produce_dict}')
+        # print(f'half_used_excavator_values_dict is {half_used_excavator_values_dict}')
+        logger.info('now is logging theoretical cost')
+        logger.info(f'budget_val is {budget_constraint}')
+        logger.info(f'total_revenue_val is {total_revenue}')
+        logger.info(f'objective value is {object}')
+        logger.info(f'produce is {produce}')
+        logger.info(f'oil_consume is {oil_consume}')
+        logger.info(f'mainteinance_cost is {mainteinance_cost}')
+        logger.info(f'precurement_cost is {precurement_cost}')
+        logger.info(f'excavator_produce_dict is {excavator_produce_dict}')
+        logger.info(f'half_used_excavator_values_dict is {half_used_excavator_values_dict}')
+        logger.info('#############################################')
+        logger.info('')
+        
+        
+    def print_solution(self, solution: Solution, opt_sequence: list):
         qubo = self.qubo_util
         data = self.data
-        obj = qubo.qubo_make_proxy(obj)
+        logger = self.logger
+        logger.info(f'now is logging calculated results {opt_sequence}')
+        
+        obj = qubo.qubo_make_proxy(solution.obj)
         obj_ising = qubo.cim_ising_model_proxy(obj)
         matrix = obj_ising.get_ising()["ising"]
         output = qubo.cim_simulator(matrix)
         opt = qubo.optimal_sampler(matrix, output)
-        best = opt[0][1]
+        row = opt_sequence[0]
+        col = opt_sequence[1]
+        best = opt[row][col]
         cim_best = best * best[-1]
         vars = obj_ising.get_variables()
         sol_dict = qubo.get_sol_dict(cim_best, vars)
        
-        obj_val = qubo.get_val(obj, sol_dict)
-        total_revenue_val = qubo.get_val(total_revenue, sol_dict)
-        budget_constraint_val = qubo.get_val(budget_constraint, sol_dict)
-        truck_num_constraint_val = qubo.read_constraint_from_dict(truck_num_constraint, sol_dict)
-        excavator_values = qubo.read_nums_from_dict(excavator_numbers, sol_dict)
-        truck_values = qubo.read_nums_from_dict(truck_numbers, sol_dict)
-        half_used_values = qubo.read_bits_from_dict(half_used_excavator_bits, sol_dict)
-        cost_con_value = qubo.read_num_from_dict(cost_con_s, sol_dict)
+        obj_val = qubo.get_val(solution.obj, sol_dict)
+        excavator_values = qubo.read_nums_from_dict(solution.excavator_numbers, sol_dict)
+        is_same = (excavator_num == expected_num for excavator_num, expected_num in zip(excavator_values.values(), self.best_solution.values()))
+        if all(is_same):
+            logger.info('the solution is the same as the best solution')
+        else:
+            logger.info('the solution is not the same as the best solution')
+            return
+        
+        total_revenue_val = qubo.get_val(solution.total_revenue, sol_dict)
+        budget_constraint_val = qubo.get_val(solution.budget_constraint, sol_dict)
+        truck_num_constraint_val = qubo.read_constraint_from_dict(solution.truck_num_constraint, sol_dict)
+        truck_values = qubo.read_nums_from_dict(solution.truck_numbers, sol_dict)
+        half_used_values = qubo.read_bits_from_dict(solution.half_used_excavator_bits, sol_dict)
+        cost_con_value = qubo.read_num_from_dict(solution.cost_con_s, sol_dict)
         total_cost = 0
         for excavator_index in self.data.excavator_truck_dict.keys():
             total_cost += excavator_values[f'excavator{excavator_index}'] * self.data.excavator_precurement_cost[excavator_index]
             
-        produce_cost = qubo.get_val(produce, sol_dict)
-        oil_consume_cost = qubo.get_val(oil_consume, sol_dict)
-        maintenance_cost = qubo.get_val(maintenance, sol_dict)
-        precurement_cost = qubo.get_val(precurement, sol_dict)
-        excavator_produce_dict = {excavator_index : qubo.get_val(20 * data.excavator_produce_efficiency[excavator_index] * (qubo.make_qubo_ndarray_sum(excavator_numbers[f'excavator{excavator_index}']) 
-                                              - 0.5 * half_used_excavator_bits[f'excavator{excavator_index}_half_used']), sol_dict)
+        produce_cost = qubo.get_val(solution.produce, sol_dict)
+        oil_consume_cost = qubo.get_val(solution.oil_consume, sol_dict)
+        maintenance_cost = qubo.get_val(solution.maintenance, sol_dict)
+        precurement_cost = qubo.get_val(solution.precurement, sol_dict)
+        excavator_produce_dict = {excavator_index : 
+            qubo.get_val(20 * data.excavator_produce_efficiency[excavator_index] * (qubo.make_qubo_ndarray_sum(solution.excavator_numbers[f'excavator{excavator_index}']) 
+                                              - 0.5 * solution.half_used_excavator_bits[f'excavator{excavator_index}_half_used']), sol_dict)
                          for excavator_index in self.data.excavator_truck_dict.keys()}
 
-        print(f'total_cost is {total_cost}')
-        print(f'cost_con_value is {cost_con_value}')
-        print(f'budgt constraint value is {budget_constraint_val}')
-        print(f'truck_num_constraint_val is {truck_num_constraint_val}')
-        print(f'excavator value is {excavator_values}')
-        print(f'truck value is {truck_values}')
-        print(f'half_used_values is {half_used_values}')
-        print(f'total_revenue_val is {total_revenue_val}')
-        print(f'objective value is {obj_val}')
-        print(f'produce is {produce_cost}')
-        print(f'oil_consume is {oil_consume_cost}')
-        print(f'maintenance_cost is {maintenance_cost}')
-        print(f'precurement_cost is {precurement_cost}')
-        print(f'excavator_produce_dict is {excavator_produce_dict}')
-        print("")
+        # print(f'total_cost is {total_cost}')
+        # print(f'cost_con_value is {cost_con_value}')
+        # print(f'budgt constraint value is {budget_constraint_val}')
+        # print(f'truck_num_constraint_val is {truck_num_constraint_val}')
+        # print(f'excavator value is {excavator_values}')
+        # print(f'truck value is {truck_values}')
+        # print(f'half_used_values is {half_used_values}')
+        # print(f'total_revenue_val is {total_revenue_val}')
+        # print(f'objective value is {obj_val}')
+        # print(f'produce is {produce_cost}')
+        # print(f'oil_consume is {oil_consume_cost}')
+        # print(f'maintenance_cost is {maintenance_cost}')
+        # print(f'precurement_cost is {precurement_cost}')
+        # print(f'excavator_produce_dict is {excavator_produce_dict}')
+        # print("")
         
-        # test parts
-        excavator_dict: Dict[int, float] = dict()
-        for excavator_index in self.data.excavator_truck_dict.keys():
-            excavator_dict[excavator_index] = excavator_values[f'excavator{excavator_index}']
 
-        truck_dict: Dict[int, float] = dict()
-        for truck_index in self.data.excavator_truck_dict.values():
-            truck_dict[truck_index] = truck_values[f'truck{truck_index}']
+        logger.info(f'total_cost is {total_cost}')
+        logger.info(f'cost_con_value is {cost_con_value}')
+        logger.info(f'budgt constraint value is {budget_constraint_val}')
+        logger.info(f'truck_num_constraint_val is {truck_num_constraint_val}')
+        logger.info(f'excavator value is {excavator_values}')
+        logger.info(f'truck value is {truck_values}')
+        logger.info(f'half_used_values is {half_used_values}')
+        logger.info(f'total_revenue_val is {total_revenue_val}')
+        logger.info(f'objective value is {obj_val}')
+        logger.info(f'produce is {produce_cost}')
+        logger.info(f'oil_consume is {oil_consume_cost}')
+        logger.info(f'maintenance_cost is {maintenance_cost}')
+        logger.info(f'precurement_cost is {precurement_cost}')
+        logger.info(f'excavator_produce_dict is {excavator_produce_dict}')
+        logger.info('---------------------------------------------')
+        logger.info('')
         
-        half_used_dict: Dict[int, float] = dict()
-        for excavator_index in self.data.excavator_truck_dict.keys():
-            half_used_dict[excavator_index] = half_used_values[f'excavator{excavator_index}_half_used']
+        # # test parts
+        # excavator_dict: Dict[int, float] = dict()
+        # for excavator_index in self.data.excavator_truck_dict.keys():
+        #     excavator_dict[excavator_index] = excavator_values[f'excavator{excavator_index}']
+
+        # truck_dict: Dict[int, float] = dict()
+        # for truck_index in self.data.excavator_truck_dict.values():
+        #     truck_dict[truck_index] = truck_values[f'truck{truck_index}']
+        
+        # half_used_dict: Dict[int, float] = dict()
+        # for excavator_index in self.data.excavator_truck_dict.keys():
+        #     half_used_dict[excavator_index] = half_used_values[f'excavator{excavator_index}_half_used']
             
-        self.calculate_theoretical_cost(excavator_dict, truck_dict, half_used_dict, cost_con_value)
+        # self.calculate_theoretical_cost(excavator_dict, truck_dict, half_used_dict, cost_con_value)
         

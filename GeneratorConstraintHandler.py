@@ -17,13 +17,15 @@ class GeneratorConstraintHandler:
         data = self.data
         qubo = self.qubo_util
         if dict_type_checker(excavator_numbers, str, ndarray):
+            # TODO:change the below expression if u wanna change this one
             return (20 * data.excavator_produce_efficiency[excavator_index] * (qubo.make_qubo_ndarray_sum(excavator_numbers[f'excavator{excavator_index}']) 
                                                 - 0.5 * half_used_excavator_bits[f'excavator{excavator_index}_half_used']) 
                     for excavator_index in data.excavator_truck_dict.keys())
         
         if dict_type_checker(excavator_numbers, int, float):
+            # TODO:change the upper expression if u wanna change this one
             return (20 * data.excavator_produce_efficiency[excavator_index] * (excavator_numbers[excavator_index] 
-                                                -0.5 * half_used_excavator_bits[excavator_index]) 
+                                                - 0.5 * half_used_excavator_bits[excavator_index]) 
                     for excavator_index in data.excavator_truck_dict.keys())
         return (0 for _ in data.excavator_truck_dict.keys())
     
@@ -77,14 +79,16 @@ class GeneratorConstraintHandler:
     
     def object_expression_factory(self, total_revenue, budget_constraint, truck_num_constraint: dict):
         qubo = self.qubo_util
-        big_number = 1000000
+        big_number = 2000000
         if dict_key_checker(truck_num_constraint, str):
-            return - total_revenue + big_number * budget_constraint + big_number * qubo.kaiwu_sum_proxy(
+            # TODO:change the below expression if u wanna change this one
+            return - total_revenue + big_number * budget_constraint + big_number * 5 * qubo.kaiwu_sum_proxy(
                 truck_num_constraint[f'excavator{excavator_index}_truck{truck_index}_constraint']
                 for excavator_index, truck_index in self.data.excavator_truck_dict.items())
         
         if dict_key_checker(truck_num_constraint, int):
-            return - total_revenue + big_number * budget_constraint + big_number * sum(
+            # TODO:change the upper expression if u wanna change this one
+            return - total_revenue + big_number * budget_constraint + big_number * 5 * sum(
                 constraint_value ** 2 for constraint_value in truck_num_constraint.values()
             )
         return 0
