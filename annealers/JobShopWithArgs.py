@@ -5,14 +5,14 @@ from typing import Dict
 from numpy import ndarray
 from DataStorage import DataStorage
 from GeneratorConstraintHandler import GeneratorConstraintHandler
+from Object import Object
 from QuboUtil import QuboUtil
 from Solution import Solution
 from utils import *
-import logging
-from datetime import datetime
+import json
 
 class JobShopWithArgs:
-    def __init__(self, excavators: list, trucks: list):
+    def __init__(self, excavators: list, trucks: list, sequence_number: int):
         excavator_truck_dict: Dict[int, int] = { excavator: truck for excavator, truck in zip(excavators, trucks)}
         self.data = DataStorage(total_budget = 2400, excavator_truck_dict = excavator_truck_dict, excavator_bucket = [0.9, 1.2, 0.8, 2.1], excavator_efficiency = [190, 175, 165, 150], 
                                 excavator_oil_consumption = [28,30,34,38], truck_oil_cosumption = [18, 22, 27],
@@ -21,13 +21,9 @@ class JobShopWithArgs:
                                 excavator_precurement_cost = [100, 140, 300, 320], 
                                 excavators_trucks_match_dict = { 0 : [1, 0, 0], 1 : [2, 1, 0], 2: [2, 2, 1], 3: [0, 2, 1]},
                                 total_truck_numbers = [7, 7, 3])
+        self.sequence_number = sequence_number
         self.qubo_util = QuboUtil()
         self.generator_constraint_handler = GeneratorConstraintHandler(self.qubo_util, self.data)
-        current_date = datetime.now()
-        self.logger = logging.getLogger('job_logger')
-        folder_dir = 'logs'
-        file_name = f'{folder_dir}/{current_date}.log'
-        logging.basicConfig(filename=file_name, level=logging.INFO, filemode='w')
         self.best_solution = {0 : 7, 1 : 7, 3: 2}
         
         
@@ -145,7 +141,6 @@ class JobShopWithArgs:
         object = handler.object_expression_factory(total_revenue, budget_constraint, truck_num_constraint)
         
         
-        logger = self.logger
         # print(f'budget_val is {budget_constraint}')
         # print(f'total_revenue_val is {total_revenue}')
         # print(f'objective value is {object}')
@@ -155,25 +150,11 @@ class JobShopWithArgs:
         # print(f'precurement_cost is {precurement_cost}')
         # print(f'excavator_produce_dict is {excavator_produce_dict}')
         # print(f'half_used_excavator_values_dict is {half_used_excavator_values_dict}')
-        logger.info('now is logging theoretical cost')
-        logger.info(f'budget_val is {budget_constraint}')
-        logger.info(f'total_revenue_val is {total_revenue}')
-        logger.info(f'objective value is {object}')
-        logger.info(f'produce is {produce}')
-        logger.info(f'oil_consume is {oil_consume}')
-        logger.info(f'mainteinance_cost is {mainteinance_cost}')
-        logger.info(f'precurement_cost is {precurement_cost}')
-        logger.info(f'excavator_produce_dict is {excavator_produce_dict}')
-        logger.info(f'half_used_excavator_values_dict is {half_used_excavator_values_dict}')
-        logger.info('#############################################')
-        logger.info('')
         
         
     def print_solution(self, solution: Solution, opt_sequence: list):
         qubo = self.qubo_util
         data = self.data
-        logger = self.logger
-        logger.info(f'now is logging calculated results {opt_sequence}')
         
         obj = qubo.qubo_make_proxy(solution.obj)
         obj_ising = qubo.cim_ising_model_proxy(obj)
@@ -189,12 +170,6 @@ class JobShopWithArgs:
        
         obj_val = qubo.get_val(solution.obj, sol_dict)
         excavator_values = qubo.read_nums_from_dict(solution.excavator_numbers, sol_dict)
-        is_same = (excavator_num == expected_num for excavator_num, expected_num in zip(excavator_values.values(), self.best_solution.values()))
-        if all(is_same):
-            logger.info('the solution is the same as the best solution')
-        else:
-            logger.info('the solution is not the same as the best solution')
-            return
         
         total_revenue_val = qubo.get_val(solution.total_revenue, sol_dict)
         budget_constraint_val = qubo.get_val(solution.budget_constraint, sol_dict)
@@ -214,7 +189,11 @@ class JobShopWithArgs:
             qubo.get_val(20 * data.excavator_produce_efficiency[excavator_index] * (qubo.make_qubo_ndarray_sum(solution.excavator_numbers[f'excavator{excavator_index}']) 
                                               - 0.5 * solution.half_used_excavator_bits[f'excavator{excavator_index}_half_used']), sol_dict)
                          for excavator_index in self.data.excavator_truck_dict.keys()}
-
+        
+        object_json = Object(total_cost, cost_con_value, budget_constraint_val, truck_num_constraint_val, excavator_values, truck_values, half_used_values, total_revenue_val, obj_val, produce_cost, oil_consume_cost, maintenance_cost, precurement_cost, excavator_produce_dict)
+        with open(f'../data/iteration-{self.sequence_number}/{opt_sequence[0]}-{opt_sequence[1]}-solution.json', 'w') as file:
+            file.write(json.dumps(object_json.__dict__))
+        
         # print(f'total_cost is {total_cost}')
         # print(f'cost_con_value is {cost_con_value}')
         # print(f'budgt constraint value is {budget_constraint_val}')
@@ -230,24 +209,6 @@ class JobShopWithArgs:
         # print(f'precurement_cost is {precurement_cost}')
         # print(f'excavator_produce_dict is {excavator_produce_dict}')
         # print("")
-        
-
-        logger.info(f'total_cost is {total_cost}')
-        logger.info(f'cost_con_value is {cost_con_value}')
-        logger.info(f'budgt constraint value is {budget_constraint_val}')
-        logger.info(f'truck_num_constraint_val is {truck_num_constraint_val}')
-        logger.info(f'excavator value is {excavator_values}')
-        logger.info(f'truck value is {truck_values}')
-        logger.info(f'half_used_values is {half_used_values}')
-        logger.info(f'total_revenue_val is {total_revenue_val}')
-        logger.info(f'objective value is {obj_val}')
-        logger.info(f'produce is {produce_cost}')
-        logger.info(f'oil_consume is {oil_consume_cost}')
-        logger.info(f'maintenance_cost is {maintenance_cost}')
-        logger.info(f'precurement_cost is {precurement_cost}')
-        logger.info(f'excavator_produce_dict is {excavator_produce_dict}')
-        logger.info('---------------------------------------------')
-        logger.info('')
         
         # # test parts
         # excavator_dict: Dict[int, float] = dict()

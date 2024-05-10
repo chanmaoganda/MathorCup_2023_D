@@ -46,7 +46,7 @@ class QuboUtil:
     def cim_ising_model_proxy(self, qubo_model):
         return kaiwu.qubo.cim_ising_model(qubo_model)
     
-    def cim_simulator(self, matrix, pump = 1.3, noise = 0.3, laps = 5000, dt = 0.1, normalization = 1.3, iterations = 100):
+    def cim_simulator(self, matrix, pump = 1.3, noise = 0.3, laps = 8000, dt = 0.1, normalization = 1.3, iterations = 100):
         return kaiwu.cim.simulator(matrix, pump, noise, laps, dt, normalization, iterations)
     
     def optimal_sampler(self, matrix: ndarray, output: ndarray, bias = 0, negtail_ff = False):
