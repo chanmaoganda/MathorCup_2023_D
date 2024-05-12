@@ -4,9 +4,9 @@
             "name": "TestDebugging",
             "type": "debugpy",
             "request": "launch",
-            "program": "test.py",
+            "program": "./annealers/test.py",
             "console": "integratedTerminal",
-            "args": ["0"]
+            "args": ["1"]
         },
         {
             "name": "MathorCupQ2",

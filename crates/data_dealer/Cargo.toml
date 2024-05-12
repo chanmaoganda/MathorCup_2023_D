@@ -1,5 +1,5 @@
 [package]
-name = "data-dealer"
+name = "data_dealer"
 version = "0.1.0"
 edition = "2021"
 

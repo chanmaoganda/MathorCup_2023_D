@@ -79,16 +79,17 @@ class GeneratorConstraintHandler:
     
     def object_expression_factory(self, total_revenue, budget_constraint, truck_num_constraint: dict):
         qubo = self.qubo_util
-        big_number = 2000000
+        budget_param = 30000000000
+        truck_num_param = 100000000000
         if dict_key_checker(truck_num_constraint, str):
             # TODO:change the below expression if u wanna change this one
-            return - total_revenue + big_number * budget_constraint + big_number * 5 * qubo.kaiwu_sum_proxy(
+            return - total_revenue + budget_param * budget_constraint + truck_num_param * qubo.kaiwu_sum_proxy(
                 truck_num_constraint[f'excavator{excavator_index}_truck{truck_index}_constraint']
                 for excavator_index, truck_index in self.data.excavator_truck_dict.items())
         
         if dict_key_checker(truck_num_constraint, int):
             # TODO:change the upper expression if u wanna change this one
-            return - total_revenue + big_number * budget_constraint + big_number * 5 * sum(
+            return - total_revenue + budget_param * budget_constraint + truck_num_param * sum(
                 constraint_value ** 2 for constraint_value in truck_num_constraint.values()
             )
         return 0

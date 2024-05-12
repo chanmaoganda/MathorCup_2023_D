@@ -3,7 +3,7 @@
 version = 3
 
 [[package]]
-name = "data-dealer"
+name = "data_dealer"
 version = "0.1.0"
 dependencies = [
  "serde",

@@ -1,5 +1,4 @@
-from calendar import c
-from math import e
+import os
 from typing import Dict
 
 from numpy import ndarray
@@ -10,9 +9,11 @@ from QuboUtil import QuboUtil
 from Solution import Solution
 from utils import *
 import json
+from multiprocessing import Pool
+
 
 class JobShopWithArgs:
-    def __init__(self, excavators: list, trucks: list, sequence_number: int):
+    def __init__(self, excavators: list, trucks: list, sequence_number = 0):
         excavator_truck_dict: Dict[int, int] = { excavator: truck for excavator, truck in zip(excavators, trucks)}
         self.data = DataStorage(total_budget = 2400, excavator_truck_dict = excavator_truck_dict, excavator_bucket = [0.9, 1.2, 0.8, 2.1], excavator_efficiency = [190, 175, 165, 150], 
                                 excavator_oil_consumption = [28,30,34,38], truck_oil_cosumption = [18, 22, 27],
@@ -33,15 +34,17 @@ class JobShopWithArgs:
         budget_constraint, truck_num_constraint = self.make_qubo_constraints(excavator_numbers, truck_numbers, half_used_excavator_bits, cost_con_s)
 
         total_revenue, object, produce, oil_consume, maintenance, precurement = self.generate_qubo_model(excavator_numbers, truck_numbers, half_used_excavator_bits, budget_constraint, truck_num_constraint)
-        solution = Solution(object, total_revenue, excavator_numbers, truck_numbers, half_used_excavator_bits, cost_con_s, budget_constraint, truck_num_constraint, produce, oil_consume, maintenance, precurement)
-        # self.print_solution(solution, [0, 0])
-        # self.print_solution(solution, [0, 1])
-        # self.print_solution(solution, [0, 2])
-        # self.print_solution(solution, [0, 3])
-        # self.print_solution(solution, [0, 4])
-        arr = [[0, index] for index in range(100)]
-        for sequence in arr:
-            self.print_solution(solution, sequence)
+        self.solution = Solution(object, total_revenue, excavator_numbers, truck_numbers, half_used_excavator_bits, cost_con_s, budget_constraint, truck_num_constraint, produce, oil_consume, maintenance, precurement)
+        self.solved_results, self.obj_ising = self.get_solved_cim_results(self.solution)
+
+        parent_dir = '/home/avania/projects/python/qboson/JobShopScheduling/data'
+        directory = f'iteration-{self.sequence_number}'
+        path = os.path.join(parent_dir, directory)
+        if not os.path.exists(path):
+            os.mkdir(path)
+            
+        for index in range(100):
+            self.write_solution(index)
 
     def init_quantum_variables(self):
         self.max_purchases = self.choose_min_purchase()
@@ -150,22 +153,24 @@ class JobShopWithArgs:
         # print(f'precurement_cost is {precurement_cost}')
         # print(f'excavator_produce_dict is {excavator_produce_dict}')
         # print(f'half_used_excavator_values_dict is {half_used_excavator_values_dict}')
-        
-        
-    def print_solution(self, solution: Solution, opt_sequence: list):
+    def get_solved_cim_results(self, solution: Solution): 
         qubo = self.qubo_util
-        data = self.data
         
         obj = qubo.qubo_make_proxy(solution.obj)
         obj_ising = qubo.cim_ising_model_proxy(obj)
         matrix = obj_ising.get_ising()["ising"]
         output = qubo.cim_simulator(matrix)
         opt = qubo.optimal_sampler(matrix, output)
-        row = opt_sequence[0]
-        col = opt_sequence[1]
-        best = opt[row][col]
+        return opt[0], obj_ising
+        
+    def write_solution(self, opt_sequence : int):
+        qubo = self.qubo_util
+        data = self.data
+        solution = self.solution
+
+        best = self.solved_results[opt_sequence]
         cim_best = best * best[-1]
-        vars = obj_ising.get_variables()
+        vars = self.obj_ising.get_variables()
         sol_dict = qubo.get_sol_dict(cim_best, vars)
        
         obj_val = qubo.get_val(solution.obj, sol_dict)
@@ -191,9 +196,12 @@ class JobShopWithArgs:
                          for excavator_index in self.data.excavator_truck_dict.keys()}
         
         object_json = Object(total_cost, cost_con_value, budget_constraint_val, truck_num_constraint_val, excavator_values, truck_values, half_used_values, total_revenue_val, obj_val, produce_cost, oil_consume_cost, maintenance_cost, precurement_cost, excavator_produce_dict)
-        with open(f'../data/iteration-{self.sequence_number}/{opt_sequence[0]}-{opt_sequence[1]}-solution.json', 'w') as file:
+        with open(f'/home/avania/projects/python/qboson/JobShopScheduling/data/iteration-{self.sequence_number}/{opt_sequence}-solution.json', 'w') as file:
             file.write(json.dumps(object_json.__dict__))
-        
+
+        # if excavator_values.values() == [7, 7, 2]:
+        # print(f'The solution is {excavator_values},\n truck is {truck_values},\n half use is {half_used_values},\n total revenue is {total_revenue_val}\n')
+
         # print(f'total_cost is {total_cost}')
         # print(f'cost_con_value is {cost_con_value}')
         # print(f'budgt constraint value is {budget_constraint_val}')
