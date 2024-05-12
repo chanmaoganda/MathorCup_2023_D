@@ -5,11 +5,11 @@ edition = "2021"
 
 [workspace]
 members = ["crates/*"]
-exclude = ["crates/annealers"]
+exclude = ["crates/annealers", "crates/py3_controller"]
 
 [dependencies]
 data_dealer.workspace = true
-py3_controller.workspace = true
+# py3_controller.workspace = true
 
 [workspace.package]
 edition = "2021"
@@ -17,4 +17,4 @@ version = "0.1.0"
 
 [workspace.dependencies]
 data_dealer = { path = "crates/data_dealer" }
-py3_controller = { path = "crates/py3_controller" }
+# py3_controller = { path = "crates/py3_controller" }

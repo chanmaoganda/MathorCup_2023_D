@@ -39,9 +39,8 @@ class JobShopWithArgs:
 
         parent_dir = '/home/avania/projects/python/qboson/JobShopScheduling/data'
         directory = f'iteration-{self.sequence_number}'
-        path = os.path.join(parent_dir, directory)
-        if not os.path.exists(path):
-            os.mkdir(path)
+        self.dir_path = os.path.join(parent_dir, directory)
+        self.path_exists = os.path.exists(self.dir_path)
             
         for index in range(100):
             self.write_solution(index)
@@ -194,7 +193,12 @@ class JobShopWithArgs:
             qubo.get_val(20 * data.excavator_produce_efficiency[excavator_index] * (qubo.make_qubo_ndarray_sum(solution.excavator_numbers[f'excavator{excavator_index}']) 
                                               - 0.5 * solution.half_used_excavator_bits[f'excavator{excavator_index}_half_used']), sol_dict)
                          for excavator_index in self.data.excavator_truck_dict.keys()}
-        
+
+        if excavator_values.values() != [7.0, 7.0, 2.0]:
+            return
+        if not self.path_exists :
+            os.mkdir(self.dir_path)
+            self.path_exists = True
         object_json = Object(total_cost, cost_con_value, budget_constraint_val, truck_num_constraint_val, excavator_values, truck_values, half_used_values, total_revenue_val, obj_val, produce_cost, oil_consume_cost, maintenance_cost, precurement_cost, excavator_produce_dict)
         with open(f'/home/avania/projects/python/qboson/JobShopScheduling/data/iteration-{self.sequence_number}/{opt_sequence}-solution.json', 'w') as file:
             file.write(json.dumps(object_json.__dict__))

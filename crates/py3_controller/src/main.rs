@@ -1,15 +1,10 @@
 use pyo3::prelude::*;
-use pyo3::py_run;
-
 
 fn main() -> PyResult<()> {
     Python::with_gil(|py| {
-        let builtins = PyModule::import_bound(py, "annealers")?;
-        let total: i32 = builtins
-            .getattr("sum")?
-            .call1((vec![1, 2, 3],))?
-            .extract()?;
-        assert_eq!(total, 6);
+        let py_app = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../annealers/run.py"));
+        let builtins : Py<PyAny> = PyModule::from_code_bound(py, &py_app, "", "")?.getattr("solve_all_instances")?.into();
+        builtins.call1(py, (5000,))?;
         Ok(())
     })
 }

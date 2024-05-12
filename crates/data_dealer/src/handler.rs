@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, path::Path};
 
 use crate::object::Object;
 
@@ -34,12 +34,17 @@ impl Handler {
     pub fn parse_iteration(&self, iteration: i32) -> (bool, Vec<i32>) {
         let mut matched_nums = Vec::new();
         let mut result = true;
-        let data_dir = "./build/all-data/data";
-
+        let data_dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../../build/all-data/data-complete");
+        // println!("data dir exists? : {}", Path::new(data_dir).exists());
         for index in 0..100 {
-            let object = Object::new(format!("{}/iteration-{iteration}/{}-solution.json", data_dir, index).as_str());
+            let file_path = format!("{}/iteration-{iteration}/{}-solution.json", data_dir, index);
+            if !Path::new(&file_path).exists() {
+                continue;
+            }
+            let object = Object::new(&file_path.as_str());
             if self.compare_to_expected(&object) {
                 matched_nums.push(index);
+                // println!("{}", file_path);
             } else {
                 result &= false;
             }
@@ -47,10 +52,10 @@ impl Handler {
         (result, matched_nums)
     }
     
-    pub fn parse_all_iterations(&self) {
+    pub fn parse_all_iterations(&self, total_iterations: i32) {
         let mut matched_iteration_lens = Vec::new();
         let mut matched_iteration_indexes = Vec::new();
-        let total_iterations = 1000;
+
         for index in 1..=total_iterations {
             let (_, matched_indexes) = self.parse_iteration(index);
             if matched_indexes.len() == 0 {
@@ -60,6 +65,7 @@ impl Handler {
             matched_iteration_indexes.push(index);
             matched_iteration_lens.push(matched_indexes.len());
         }
+        
         println!("matched numbers: {:?}", matched_iteration_indexes.iter().zip(matched_iteration_lens.iter()).collect::<BTreeMap<_, _>>());
         println!("total number is {}, averaged matched numbers: {:3}", 
             matched_iteration_lens.len(), 
