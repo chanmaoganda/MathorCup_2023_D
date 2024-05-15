@@ -9,8 +9,6 @@ from QuboUtil import QuboUtil
 from Solution import Solution
 from utils import *
 import json
-from multiprocessing import Pool
-
 
 class JobShopWithArgs:
     def __init__(self, excavators: list, trucks: list, sequence_number = 0):
@@ -37,11 +35,11 @@ class JobShopWithArgs:
         self.solution = Solution(object, total_revenue, excavator_numbers, truck_numbers, half_used_excavator_bits, cost_con_s, budget_constraint, truck_num_constraint, produce, oil_consume, maintenance, precurement)
         self.solved_results, self.obj_ising = self.get_solved_cim_results(self.solution)
 
-        parent_dir = '/home/avania/projects/python/qboson/JobShopScheduling/data'
+        parent_dir = '/home/avania/projects/python/MathorCupD-2023/data'
         directory = f'iteration-{self.sequence_number}'
         self.dir_path = os.path.join(parent_dir, directory)
         self.path_exists = os.path.exists(self.dir_path)
-            
+        
         for index in range(100):
             self.write_solution(index)
 
@@ -194,13 +192,15 @@ class JobShopWithArgs:
                                               - 0.5 * solution.half_used_excavator_bits[f'excavator{excavator_index}_half_used']), sol_dict)
                          for excavator_index in self.data.excavator_truck_dict.keys()}
 
-        if excavator_values.values() != [7.0, 7.0, 2.0]:
-            return
+        # if excavator_values.values() != [7.0, 7.0, 2.0]:
+        #     return
         if not self.path_exists :
             os.mkdir(self.dir_path)
+            # print(f'directory {self.dir_path} created')
             self.path_exists = True
         object_json = Object(total_cost, cost_con_value, budget_constraint_val, truck_num_constraint_val, excavator_values, truck_values, half_used_values, total_revenue_val, obj_val, produce_cost, oil_consume_cost, maintenance_cost, precurement_cost, excavator_produce_dict)
-        with open(f'/home/avania/projects/python/qboson/JobShopScheduling/data/iteration-{self.sequence_number}/{opt_sequence}-solution.json', 'w') as file:
+        with open(f'/home/avania/projects/python/MathorCupD-2023/data/iteration-{self.sequence_number}/{opt_sequence}-solution.json', 'w') as file:
+            # print(f'writing solution to file {self.dir_path}/{opt_sequence}-solution.json')
             file.write(json.dumps(object_json.__dict__))
 
         # if excavator_values.values() == [7, 7, 2]:
