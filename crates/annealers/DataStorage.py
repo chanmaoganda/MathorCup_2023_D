@@ -3,12 +3,16 @@ from typing import Dict, List
 from QuboUtil import QuboUtil
 
 
+
 class DataStorage:
-    def __init__(self, total_budget: int, excavator_truck_dict: Dict[int, int], excavator_bucket: List[float], excavator_efficiency: List[int], excavator_oil_consumption: List[int], 
+    """
+        this class only stores basic data for this problem, such as the budget, the oil consumption, the labor cost, the maintenance cost, etc.
+    """
+    def __init__(self, total_budget: int, excavator_bucket: List[float], excavator_efficiency: List[int], excavator_oil_consumption: List[int], 
                  truck_oil_consumption: List[int], excavator_labor_cost: List[int], truck_labor_cost: List[int], excavator_maintenance_cost: List[int], truck_maintenance_cost: List[int],
                  excavator_precurement_cost: List[int], excavators_trucks_match_dict: Dict[int, List[int]], total_truck_numbers: List[int]):
+
         self.total_budget = total_budget
-        self.excavator_truck_dict = excavator_truck_dict
         self.excavator_oil_consumption = excavator_oil_consumption
         self.truck_oil_cosumption = truck_oil_consumption
         self.excavator_labor_cost = excavator_labor_cost

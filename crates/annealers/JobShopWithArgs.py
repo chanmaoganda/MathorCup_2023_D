@@ -7,28 +7,24 @@ from GeneratorConstraintHandler import GeneratorConstraintHandler
 from Object import Object
 from QuboUtil import QuboUtil
 from Solution import Solution
+from InstanceSolver import InstanceSolver
 from utils import *
 import json
 
 class JobShopWithArgs:
-    def __init__(self, excavators: list, trucks: list, sequence_number = 0):
-        excavator_truck_dict: Dict[int, int] = { excavator: truck for excavator, truck in zip(excavators, trucks)}
-        self.data = DataStorage(total_budget = 2400, excavator_truck_dict = excavator_truck_dict, excavator_bucket = [0.9, 1.2, 0.8, 2.1], excavator_efficiency = [190, 175, 165, 150], 
-                                excavator_oil_consumption = [28,30,34,38], truck_oil_consumption = [18, 22, 27],
-                                excavator_labor_cost = [7000, 7500, 8500, 9000], truck_labor_cost = [6000, 7000, 8000],
-                                excavator_maintenance_cost = [1000, 1500, 2000, 3000], truck_maintenance_cost = [2000, 3000, 4000],
-                                excavator_precurement_cost = [100, 140, 300, 320], 
-                                excavators_trucks_match_dict = { 0 : [1, 0, 0], 1 : [2, 1, 0], 2: [2, 2, 1], 3: [0, 2, 1]},
-                                total_truck_numbers = [7, 7, 3])
-        self.sequence_number = sequence_number
+    def __init__(self, instance_solver: InstanceSolver):
+
+        self.excavator_truck_dict: Dict[int, int] = { excavator: truck for excavator, truck in 
+                            zip(instance_solver.excavator_list, instance_solver.truck_list) }
+        self.data = instance_solver.data
+        self.sequence_number = instance_solver.iteration
         self.qubo_util = QuboUtil()
-        self.generator_constraint_handler = GeneratorConstraintHandler(self.qubo_util, self.data)
+        self.generator_constraint_handler = GeneratorConstraintHandler(self.qubo_util, self.data, self.excavator_truck_dict)
         self.best_solution = {0 : 7, 1 : 7, 3: 2}
         
         
     def solve(self):
         excavator_numbers, truck_numbers, half_used_excavator_bits, cost_con_s = self.init_quantum_variables()
-        # print(f'current used bits are {self.qubo_util.total_bits}')
         budget_constraint, truck_num_constraint = self.make_qubo_constraints(excavator_numbers, truck_numbers, half_used_excavator_bits, cost_con_s)
 
         total_revenue, object, produce, oil_consume, maintenance, precurement = self.generate_qubo_model(excavator_numbers, truck_numbers, half_used_excavator_bits, budget_constraint, truck_num_constraint)
@@ -48,41 +44,41 @@ class JobShopWithArgs:
 
         excavator_numbers : Dict[str, ndarray] = dict()
         for index, number in enumerate(self.max_purchases):
-            if index not in self.data.excavator_truck_dict.keys():
+            if index not in self.excavator_truck_dict.keys():
                 continue
             excavator_name = f'excavator{index}'
             excavator_numbers[excavator_name] = self.qubo_util.convert_qubo_ndarray_from_number(number, excavator_name)
         
         used_truck_numbers : Dict[str, ndarray] = dict() # this dictionary refers to common binary variable list in qubo
         half_used_excavator_bits = dict() # this dictionary refers to a variable in qubo
-        for excavator_index, truck_index in self.data.excavator_truck_dict.items():
+        for excavator_index, truck_index in self.excavator_truck_dict.items():
             truck_name = f'truck{truck_index}'
             excavator_name = f'excavator{excavator_index}_half_used'
             used_truck_numbers[truck_name] = self.qubo_util.convert_qubo_ndarray_from_number(self.data.total_truck_numbers[truck_index], truck_name)
             half_used_excavator_bits[excavator_name] = self.qubo_util.convert_qubo_binary(excavator_name)
 
         # TODO: cost_con_num not initilized, how to calculate?
-        one_piece_cost = sum(self.data.excavator_precurement_cost[index] for index in self.data.excavator_truck_dict.keys())
+        one_piece_cost = sum(self.data.excavator_precurement_cost[index] for index in self.excavator_truck_dict.keys())
         cost_con_s = self.qubo_util.convert_qubo_ndarray_from_number(self.data.total_budget - one_piece_cost, 'cost_con_s')
         return excavator_numbers, used_truck_numbers, half_used_excavator_bits, cost_con_s
     
     def choose_min_purchase(self) -> List[int]:
         theatrical_max_purchases = list(make_mapped_generator(self.data.excavator_precurement_cost, lambda cost : self.data.total_budget // cost))
-        requested_truck_map = {excavator_index: self.data.total_truck_numbers[truck_index] for excavator_index, truck_index in self.data.excavator_truck_dict.items() if self.data.excavators_trucks_match_dict[excavator_index][truck_index] != 0}
+        requested_truck_map = {excavator_index: self.data.total_truck_numbers[truck_index] for excavator_index, truck_index in self.excavator_truck_dict.items() if self.data.excavators_trucks_match_dict[excavator_index][truck_index] != 0}
         requested_truck_list = [requested_truck_map.get(excavator_index, 0) for excavator_index in range(self.data.excavator_kinds)]
         return list(min(value1, value2) for value1, value2 in zip(theatrical_max_purchases, requested_truck_list))
 
 
     def make_qubo_constraints(self, excavator_numbers : Dict[str, ndarray], truck_numbers : Dict[str, ndarray], half_used_excavator_bits: dict, cost_con_s: ndarray):
         cost_generator = (self.data.excavator_precurement_cost[excavator_index] * self.qubo_util.make_qubo_ndarray_sum(excavator_numbers[f'excavator{excavator_index}'])
-        for excavator_index in self.data.excavator_truck_dict.keys())
+        for excavator_index in self.excavator_truck_dict.keys())
         total_cost = self.qubo_util.kaiwu_sum_proxy(cost_generator)
         cost_con = self.qubo_util.make_qubo_ndarray_sum(cost_con_s)
         
         # Budget constraint
         budget_constraint = self.qubo_util.convert_qubo_constraint(self.data.total_budget - total_cost - cost_con, 'budget')
         truck_num_constraint = {}
-        for excavator_index, truck_index in self.data.excavator_truck_dict.items():
+        for excavator_index, truck_index in self.excavator_truck_dict.items():
             excavator_name = f'excavator{excavator_index}'
             half_used_excavator_name = f'excavator{excavator_index}_half_used'
             truck_name = f'truck{truck_index}'
@@ -125,13 +121,13 @@ class JobShopWithArgs:
         total_revenue = handler.total_revenue_expression_factory(produce, oil_consume, mainteinance_cost, precurement_cost)
         
         excavator_produce_dict: Dict[int, float] = {}
-        for excavator_index in self.data.excavator_truck_dict.keys():
+        for excavator_index in self.excavator_truck_dict.keys():
             current_produce = (excavator_numbers[excavator_index] - 0.5 * half_used_excavator_bits[excavator_index]) * 20 * data.excavator_produce_efficiency[excavator_index]
             excavator_produce_dict[excavator_index] = current_produce
 
         budget_constraint = (data.total_budget - cost_con_val - precurement_cost) ** 2
         truck_num_constraint = {excavator_index : truck_numbers[truck_index] + half_used_excavator_bits[excavator_index]
-            - data.excavators_trucks_match_dict[excavator_index][truck_index] * excavator_numbers[excavator_index] for excavator_index, truck_index in self.data.excavator_truck_dict.items()}
+            - data.excavators_trucks_match_dict[excavator_index][truck_index] * excavator_numbers[excavator_index] for excavator_index, truck_index in self.excavator_truck_dict.items()}
         object = handler.object_expression_factory(total_revenue, budget_constraint, truck_num_constraint)
         
         half_used_excavator_values_dict = {}
@@ -169,7 +165,7 @@ class JobShopWithArgs:
         half_used_values = qubo.read_bits_from_dict(solution.half_used_excavator_bits, sol_dict)
         cost_con_value = qubo.read_num_from_dict(solution.cost_con_s, sol_dict)
         total_cost = 0
-        for excavator_index in self.data.excavator_truck_dict.keys():
+        for excavator_index in self.excavator_truck_dict.keys():
             total_cost += excavator_values[f'excavator{excavator_index}'] * self.data.excavator_precurement_cost[excavator_index]
             
         produce_cost = qubo.get_val(solution.produce, sol_dict)
@@ -179,7 +175,7 @@ class JobShopWithArgs:
         excavator_produce_dict = {excavator_index : 
             qubo.get_val(20 * data.excavator_produce_efficiency[excavator_index] * (qubo.make_qubo_ndarray_sum(solution.excavator_numbers[f'excavator{excavator_index}']) 
                                               - 0.5 * solution.half_used_excavator_bits[f'excavator{excavator_index}_half_used']), sol_dict)
-                         for excavator_index in self.data.excavator_truck_dict.keys()}
+                         for excavator_index in self.excavator_truck_dict.keys()}
 
         # if excavator_values.values() != [7.0, 7.0, 2.0]:
         #     return
