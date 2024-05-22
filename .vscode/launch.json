@@ -1,6 +1,18 @@
 {
     "configurations": [
         {
+            "type": "lldb",
+            "request": "launch",
+            "name": "debug runner",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=runner",
+                ]
+            },
+            "args": []
+        },
+        {
             "name": "run.py",
             "type": "debugpy",
             "request": "launch",

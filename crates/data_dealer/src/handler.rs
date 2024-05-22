@@ -1,75 +1,57 @@
-use std::{collections::BTreeMap, path::Path};
+use std::fs;
+use scan_dir::ScanDir;
 
 use crate::object::Object;
 
 pub struct Handler {
-    expected_excavator_nums: Vec<f32>,
-    expected_truck_nums: Vec<f32>,
+    data_dir: String,
 }
 
 impl Handler {
-    pub fn new(expected_excavator_nums: Vec<f32>, expected_truck_nums: Vec<f32>) -> Self {
-        Handler{expected_excavator_nums, expected_truck_nums}
-    }
-
-    fn compare_to_expected(&self, object: &Object) -> bool {
-        for (reality, expected) in object.excavator_values.values().zip(self.expected_excavator_nums.iter()) {
-            if reality != expected {
-                return false;
-            }
-        }
-        for (reality, expected) in object.truck_values.values().zip(self.expected_truck_nums.iter()) {
-            if reality != expected {
-                return false;
-            }
-        }
-        for (reality, expected) in object.half_used_values.values().zip(vec![0.0, 0.0, 0.0].iter()) {
-            if reality != expected {
-                return false;
-            }
-        }
-        true
-    }
-
-    pub fn parse_iteration(&self, iteration: i32) -> (bool, Vec<i32>) {
-        let mut matched_nums = Vec::new();
-        let mut result = true;
+    pub fn new() -> Self {
         let data_dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../../data");
-        // println!("data dir {} exists? : {}", data_dir, Path::new(data_dir).exists());
-        for index in 0..100 {
-            let file_path = format!("{}/iteration-{iteration}/{}-solution.json", data_dir, index);
-            if !Path::new(&file_path).exists() {
-                continue;
+        Handler{data_dir: data_dir.to_string()}
+    }
+
+    pub fn parse_one_iteration(&self, iteration_path: &str) -> Object {
+        let mut best_object = Object::default();
+        let mut min_value = f32::MAX;
+        let _ = ScanDir::files().read(iteration_path, |iterable|{
+            for (entry, _) in iterable {
+                let object = Object::from_file(&entry.path().display().to_string());
+                if min_value > object.obj_val {
+                    min_value = object.obj_val;
+                    best_object = object.clone();
+                }
             }
-            let object = Object::new(&file_path.as_str());
-            if self.compare_to_expected(&object) {
-                matched_nums.push(index);
-                // println!("{}", file_path);
-            } else {
-                result &= false;
+        });
+        best_object
+    }
+
+    fn parse_one_instance(&self, instance_path: &str) -> Object {
+        let mut best_object = Object::default();
+        let mut min_value = f32::MAX;
+        let _ = ScanDir::dirs().read(instance_path, |iterable| {
+            for (entry, _) in iterable {
+                let iteration_path = entry.path().display().to_string();
+                let object = self.parse_one_iteration(&iteration_path);
+                if min_value > object.obj_val {
+                    min_value = object.obj_val;
+                    best_object = object.clone();
+                }
             }
-        }
-        (result, matched_nums)
+        });
+        best_object
     }
     
-    pub fn parse_all_iterations(&self, total_iterations: i32) {
-        let mut matched_iteration_lens = Vec::new();
-        let mut matched_iteration_indexes = Vec::new();
-
-        for index in 1..=total_iterations {
-            let (_, matched_indexes) = self.parse_iteration(index);
-            if matched_indexes.len() == 0 {
-                continue;
+    pub fn parse_all_instances(&self) {
+        let _ = ScanDir::dirs().read(&self.data_dir, |iterable|{
+            for (entry, _) in iterable {
+                let instance_path = entry.path().display().to_string();
+                let instance_best_object = self.parse_one_instance(&instance_path);
+                println!("{}", instance_best_object.to_readable_string());
             }
-            println!("matched iteration {} with matched numbers {:?} ", index, matched_indexes);
-            matched_iteration_indexes.push(index);
-            matched_iteration_lens.push(matched_indexes.len());
-        }
-        
-        println!("matched numbers: {:?}", matched_iteration_indexes.iter().zip(matched_iteration_lens.iter()).collect::<BTreeMap<_, _>>());
-        println!("total number is {}, averaged matched numbers: {:3}", 
-            matched_iteration_lens.len(), 
-            matched_iteration_lens.iter().sum::<usize>() as f32 / total_iterations as f32);
+        });
     }
 
 }

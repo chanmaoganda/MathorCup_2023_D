@@ -2,14 +2,17 @@ mod handler;
 mod object;
 
 pub use handler::Handler;
+pub use object::Object;
+
 #[cfg(test)]
 mod test {
 
-    use crate::handler::Handler;
+    use scan_dir::ScanDir;
+
+    use crate::*;
 
     #[test]
     fn test_handler() {
-        let handler = Handler::new(vec![7.0, 7.0, 2.0], vec![7.0, 7.0, 2.0]);
-        handler.parse_all_iterations(100);
+        
     }
 }

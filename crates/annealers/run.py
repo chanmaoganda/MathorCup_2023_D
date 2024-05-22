@@ -26,4 +26,4 @@ def solve_all_instances(num_processes : int):
     end = time.time()
     print(f"Time taken: {end - start} seconds")
     
-solve_all_instances(10)
+solve_all_instances(1000)

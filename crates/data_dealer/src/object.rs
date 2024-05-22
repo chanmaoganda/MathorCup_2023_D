@@ -2,7 +2,7 @@ use std::{collections::BTreeMap, fs};
 
 use serde::{Serialize, Deserialize};
 
-#[derive(Debug,Serialize, Deserialize)]
+#[derive(Debug,Serialize, Deserialize, Default, Clone)]
 pub struct Object {
     pub total_cost: f32,
     pub cost_con_value: f32,
@@ -20,9 +20,19 @@ pub struct Object {
 }
 
 impl Object {
-    pub fn new(file_path: &str) -> Self {
+    pub fn from_file(file_path: &str) -> Self{
         let str = fs::read_to_string(file_path).expect("Couldn't find or load that file.");
         let object : Self = serde_json::from_str(&str).unwrap();
         object
+    }
+
+    pub fn to_readable_string(&self) -> String {
+        let mut string = String::new();
+        string.push_str(&format!("total_cost is {}\n", self.total_cost));
+        string.push_str(&format!("excavator_values is {:?}\n", self.excavator_values));
+        string.push_str(&format!("truck_value is {:?}\n", self.truck_values));
+        string.push_str(&format!("half_used_values is {:?}\n", self.half_used_values));
+        string.push_str(&format!("total_revenue_val is {}\n", self.total_revenue_val));
+        string
     }
 }

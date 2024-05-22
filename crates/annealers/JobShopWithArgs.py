@@ -44,7 +44,7 @@ class JobShopWithArgs:
         print(self.dir_path)
         self.path_exists = os.path.exists(self.dir_path)
         
-        for index in range(10):
+        for index in range(30):
             self.write_solution(index)
 
     def init_quantum_variables(self):

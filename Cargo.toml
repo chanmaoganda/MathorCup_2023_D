@@ -3,9 +3,12 @@ name = "runner"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "runner"
+
 [workspace]
 members = ["crates/*"]
-exclude = ["crates/annealers", "crates/py3_controller"]
+exclude = ["crates/annealers"]
 
 [dependencies]
 data_dealer.workspace = true
@@ -17,4 +20,3 @@ version = "0.1.0"
 
 [workspace.dependencies]
 data_dealer = { path = "crates/data_dealer" }
-# py3_controller = { path = "crates/py3_controller" }
