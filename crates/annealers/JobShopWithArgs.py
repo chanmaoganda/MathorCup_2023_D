@@ -21,7 +21,12 @@ class JobShopWithArgs:
         self.qubo_util = QuboUtil()
         self.generator_constraint_handler = GeneratorConstraintHandler(self.qubo_util, self.data, self.excavator_truck_dict)
         self.best_solution = {0 : 7, 1 : 7, 3: 2}
-        
+    
+    def gen_output_dir(self) -> str:
+        parent_dir = '/home/avania/projects/python/MathorCupD-2023/data'
+        excavators = [key for key in self.excavator_truck_dict.keys()]
+        directory = f'{excavators[0]}-{excavators[1]}-{excavators[2]}'
+        return os.path.join(parent_dir, directory)
         
     def solve(self):
         excavator_numbers, truck_numbers, half_used_excavator_bits, cost_con_s = self.init_quantum_variables()
@@ -30,10 +35,13 @@ class JobShopWithArgs:
         total_revenue, object, produce, oil_consume, maintenance, precurement = self.generate_qubo_model(excavator_numbers, truck_numbers, half_used_excavator_bits, budget_constraint, truck_num_constraint)
         self.solution = Solution(object, total_revenue, excavator_numbers, truck_numbers, half_used_excavator_bits, cost_con_s, budget_constraint, truck_num_constraint, produce, oil_consume, maintenance, precurement)
         self.solved_results, self.obj_ising = self.get_solved_cim_results(self.solution)
-
-        parent_dir = '/home/avania/projects/python/MathorCupD-2023/data'
-        directory = f'iteration-{self.sequence_number}'
-        self.dir_path = os.path.join(parent_dir, directory)
+        
+        output_dir = self.gen_output_dir()
+        if not os.path.exists(output_dir):
+            os.mkdir(output_dir)
+        print(output_dir)
+        self.dir_path = os.path.join(output_dir, f'iteration-{self.sequence_number}')
+        print(self.dir_path)
         self.path_exists = os.path.exists(self.dir_path)
         
         for index in range(10):
@@ -184,7 +192,7 @@ class JobShopWithArgs:
             # print(f'directory {self.dir_path} created')
             self.path_exists = True
         object_json = Object(total_cost, cost_con_value, budget_constraint_val, truck_num_constraint_val, excavator_values, truck_values, half_used_values, total_revenue_val, obj_val, produce_cost, oil_consume_cost, maintenance_cost, precurement_cost, excavator_produce_dict)
-        with open(f'/home/avania/projects/python/MathorCupD-2023/data/iteration-{self.sequence_number}/{opt_sequence}-solution.json', 'w') as file:
+        with open(f'{self.dir_path}/{opt_sequence}-solution.json', 'w') as file:
             # print(f'writing solution to file {self.dir_path}/{opt_sequence}-solution.json')
             file.write(json.dumps(object_json.__dict__))
     

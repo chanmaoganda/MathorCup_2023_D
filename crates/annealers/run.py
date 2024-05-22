@@ -23,8 +23,7 @@ def solve_all_instances(num_processes : int):
         instance_list: List[InstanceSolver] = [InstanceSolver(instance, instance_maker.data).assign_iteration(iteration) 
                         for iteration in range(num_processes)]
         solve_one_instance(instance_list)
-        break
     end = time.time()
     print(f"Time taken: {end - start} seconds")
     
-solve_all_instances(100)
+solve_all_instances(10)
