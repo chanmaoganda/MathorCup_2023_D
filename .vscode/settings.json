@@ -1,4 +1,10 @@
 {
     "python.analysis.typeCheckingMode": "basic",
-    "python.analysis.autoImportCompletions": true
+    "python.analysis.autoImportCompletions": true,
+    "cSpell.words": [
+        "ising",
+        "jobshop",
+        "Mathor",
+        "qubo"
+    ]
 }

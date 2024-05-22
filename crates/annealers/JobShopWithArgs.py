@@ -14,7 +14,7 @@ class JobShopWithArgs:
     def __init__(self, excavators: list, trucks: list, sequence_number = 0):
         excavator_truck_dict: Dict[int, int] = { excavator: truck for excavator, truck in zip(excavators, trucks)}
         self.data = DataStorage(total_budget = 2400, excavator_truck_dict = excavator_truck_dict, excavator_bucket = [0.9, 1.2, 0.8, 2.1], excavator_efficiency = [190, 175, 165, 150], 
-                                excavator_oil_consumption = [28,30,34,38], truck_oil_cosumption = [18, 22, 27],
+                                excavator_oil_consumption = [28,30,34,38], truck_oil_consumption = [18, 22, 27],
                                 excavator_labor_cost = [7000, 7500, 8500, 9000], truck_labor_cost = [6000, 7000, 8000],
                                 excavator_maintenance_cost = [1000, 1500, 2000, 3000], truck_maintenance_cost = [2000, 3000, 4000],
                                 excavator_precurement_cost = [100, 140, 300, 320], 
@@ -40,7 +40,7 @@ class JobShopWithArgs:
         self.dir_path = os.path.join(parent_dir, directory)
         self.path_exists = os.path.exists(self.dir_path)
         
-        for index in range(100):
+        for index in range(10):
             self.write_solution(index)
 
     def init_quantum_variables(self):
@@ -139,20 +139,9 @@ class JobShopWithArgs:
             value = constraint_value ** 2
             half_used_excavator_values_dict[excavator_index] = value
         object = handler.object_expression_factory(total_revenue, budget_constraint, truck_num_constraint)
-        
-        
-        # print(f'budget_val is {budget_constraint}')
-        # print(f'total_revenue_val is {total_revenue}')
-        # print(f'objective value is {object}')
-        # print(f'produce is {produce}')
-        # print(f'oil_consume is {oil_consume}')
-        # print(f'mainteinance_cost is {mainteinance_cost}')
-        # print(f'precurement_cost is {precurement_cost}')
-        # print(f'excavator_produce_dict is {excavator_produce_dict}')
-        # print(f'half_used_excavator_values_dict is {half_used_excavator_values_dict}')
+
     def get_solved_cim_results(self, solution: Solution): 
         qubo = self.qubo_util
-        
         obj = qubo.qubo_make_proxy(solution.obj)
         obj_ising = qubo.cim_ising_model_proxy(obj)
         matrix = obj_ising.get_ising()["ising"]
@@ -202,38 +191,33 @@ class JobShopWithArgs:
         with open(f'/home/avania/projects/python/MathorCupD-2023/data/iteration-{self.sequence_number}/{opt_sequence}-solution.json', 'w') as file:
             # print(f'writing solution to file {self.dir_path}/{opt_sequence}-solution.json')
             file.write(json.dumps(object_json.__dict__))
+    
+    def make_all_instances(self) -> List[List[int]]:
+        match_dict = self.data.excavators_trucks_match_dict
 
-        # if excavator_values.values() == [7, 7, 2]:
-        # print(f'The solution is {excavator_values},\n truck is {truck_values},\n half use is {half_used_values},\n total revenue is {total_revenue_val}\n')
+        matches = self.__find_matches(0, [key for key in match_dict.keys()])
+        for match in matches:
+            match.reverse()
 
-        # print(f'total_cost is {total_cost}')
-        # print(f'cost_con_value is {cost_con_value}')
-        # print(f'budgt constraint value is {budget_constraint_val}')
-        # print(f'truck_num_constraint_val is {truck_num_constraint_val}')
-        # print(f'excavator value is {excavator_values}')
-        # print(f'truck value is {truck_values}')
-        # print(f'half_used_values is {half_used_values}')
-        # print(f'total_revenue_val is {total_revenue_val}')
-        # print(f'objective value is {obj_val}')
-        # print(f'produce is {produce_cost}')
-        # print(f'oil_consume is {oil_consume_cost}')
-        # print(f'maintenance_cost is {maintenance_cost}')
-        # print(f'precurement_cost is {precurement_cost}')
-        # print(f'excavator_produce_dict is {excavator_produce_dict}')
-        # print("")
-        
-        # # test parts
-        # excavator_dict: Dict[int, float] = dict()
-        # for excavator_index in self.data.excavator_truck_dict.keys():
-        #     excavator_dict[excavator_index] = excavator_values[f'excavator{excavator_index}']
+        return matches
 
-        # truck_dict: Dict[int, float] = dict()
-        # for truck_index in self.data.excavator_truck_dict.values():
-        #     truck_dict[truck_index] = truck_values[f'truck{truck_index}']
+    
+    def __find_matches(self, epoch: int, current_sequence: List[int]) -> List[List[int]]:
+        truck_kinds = self.data.truck_kinds
+        match_dict = self.data.excavators_trucks_match_dict
         
-        # half_used_dict: Dict[int, float] = dict()
-        # for excavator_index in self.data.excavator_truck_dict.keys():
-        #     half_used_dict[excavator_index] = half_used_values[f'excavator{excavator_index}_half_used']
-            
-        # self.calculate_theoretical_cost(excavator_dict, truck_dict, half_used_dict, cost_con_value)
-        
+        if epoch == truck_kinds - 1:
+            return [[excavator_index] for excavator_index in current_sequence if match_dict[excavator_index][epoch] != 0]
+        result = []
+        for index in range(len(current_sequence)):
+            excavator = current_sequence.pop(0)
+            if match_dict[excavator][epoch] == 0:
+                current_sequence.append(excavator)
+                continue
+            matches = self.__find_matches(epoch + 1, current_sequence)
+
+            for match in matches:
+                match.append(excavator)
+            current_sequence.append(excavator)
+            result.extend(matches)
+        return result

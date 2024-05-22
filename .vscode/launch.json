@@ -1,12 +1,21 @@
 {
     "configurations": [
         {
+            "name": "run.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "./crates/annealers/run.py",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "TestDebugging",
             "type": "debugpy",
             "request": "launch",
-            "program": "./annealers/test.py",
+            "program": "./crates/annealers/test.py",
             "console": "integratedTerminal",
-            "args": ["1"]
+            "args": [
+                "1"
+            ]
         },
         {
             "name": "MathorCupQ2",

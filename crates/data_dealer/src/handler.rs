@@ -34,8 +34,8 @@ impl Handler {
     pub fn parse_iteration(&self, iteration: i32) -> (bool, Vec<i32>) {
         let mut matched_nums = Vec::new();
         let mut result = true;
-        let data_dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../../build/all-data/data-complete");
-        // println!("data dir exists? : {}", Path::new(data_dir).exists());
+        let data_dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../../data");
+        // println!("data dir {} exists? : {}", data_dir, Path::new(data_dir).exists());
         for index in 0..100 {
             let file_path = format!("{}/iteration-{iteration}/{}-solution.json", data_dir, index);
             if !Path::new(&file_path).exists() {
