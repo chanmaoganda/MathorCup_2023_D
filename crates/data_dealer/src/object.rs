@@ -1,6 +1,8 @@
 use std::{collections::BTreeMap, fs};
-
 use serde::{Serialize, Deserialize};
+use color_print::cformat;
+
+use crate::FormattedString;
 
 #[derive(Debug,Serialize, Deserialize, Default, Clone)]
 pub struct Object {
@@ -28,11 +30,26 @@ impl Object {
 
     pub fn to_readable_string(&self) -> String {
         let mut string = String::new();
-        string.push_str(&format!("total_cost is {}\n", self.total_cost));
-        string.push_str(&format!("excavator_values is {:?}\n", self.excavator_values));
-        string.push_str(&format!("truck_value is {:?}\n", self.truck_values));
-        string.push_str(&format!("half_used_values is {:?}\n", self.half_used_values));
-        string.push_str(&format!("total_revenue_val is {}\n", self.total_revenue_val));
+        string.push_str(&cformat!("<c>total_cost is </><y>{}</>\n", self.total_cost));
+        string.push_str(&cformat!("<c>excavator_values is </>{}\n", self.excavator_values.format()));
+        string.push_str(&cformat!("<c>truck_value is </>{}\n", self.truck_values.format()));
+        string.push_str(&cformat!("<c>half_used_values is </>{}\n", self.half_used_values.format()));
+        string.push_str(&cformat!("<c>total_revenue_val is </><y, bold>{}</>\n", self.total_revenue_val));
+        string
+    }
+
+    pub fn to_ruled_string(&self, rule: &Vec<String>) -> String {
+        let mut excavator_string = String::new();
+        rule.iter().for_each(|excavator| {
+            excavator_string.push_str(&cformat!("<b, bold>{}</>: <y>{:.1}</>,", excavator, self.excavator_values.get(excavator).expect("excavator not found")));
+        });
+
+        let mut string = String::new();
+        string.push_str(&cformat!("<c>total_cost is </><y>{}</>\n", self.total_cost));
+        string.push_str(&cformat!("<c>excavator_values is </>{}\n", excavator_string));
+        string.push_str(&cformat!("<c>truck_value is </>{}\n", self.truck_values.format()));
+        string.push_str(&cformat!("<c>half_used_values is </>{}\n", self.half_used_values.format()));
+        string.push_str(&cformat!("<c>total_revenue_val is </><y, bold>{}</>\n", self.total_revenue_val));
         string
     }
 }

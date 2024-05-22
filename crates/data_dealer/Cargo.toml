@@ -7,3 +7,4 @@ edition = "2021"
 serde_json = { version = "1.0" }
 serde = {version = "1.0", features = ["derive"] }
 scan_dir = "0.3.3"
+color-print = "0.3.6"
