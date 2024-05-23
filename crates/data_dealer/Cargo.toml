@@ -8,3 +8,5 @@ serde_json = { version = "1.0" }
 serde = {version = "1.0", features = ["derive"] }
 scan_dir = "0.3.3"
 color-print = "0.3.6"
+tabled = { version = "0.15.0", features = ["derive"] }
+regex = { version = "1.10.4" }

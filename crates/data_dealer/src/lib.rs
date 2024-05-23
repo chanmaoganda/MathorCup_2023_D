@@ -1,18 +1,15 @@
 mod handler;
-mod object;
+mod solution;
 mod formatted_string;
+mod readable_solution;
 
 pub use handler::Handler;
-pub use object::Object;
+pub use solution::Solution;
 pub use formatted_string::FormattedString;
+pub use readable_solution::ReadableSolution;
 
 #[cfg(test)]
 mod test {
-
-    use scan_dir::ScanDir;
-
-    use crate::*;
-
     #[test]
     fn test_handler() {
         

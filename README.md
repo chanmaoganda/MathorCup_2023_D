@@ -1,4 +1,4 @@
-# This repository contains the code for the MathorCup D-2023.
+# This repository contains the code for the MathorCup 2023-D problem.
 - This problem is asking to find the best combination of trucks and excavators to make the most profit. 
 - This repo aims to make the problem more simple and easy via tearing this problem into smaller sub-problems.
 ### SubProblems
