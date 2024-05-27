@@ -1,4 +1,7 @@
 from typing import List
+import itertools
+
+from numpy import iterable
 
 from DataStorage import DataStorage
 
@@ -20,6 +23,9 @@ class InstanceMaker:
             match.reverse()
 
         return matches
+    
+    def make_combinations(self):
+        return self.__find_combinations(self.data.excavators_trucks_match_dict.keys())
 
     
     def __find_matches(self, epoch: int, current_sequence: List[int]) -> List[List[int]]:
@@ -41,3 +47,9 @@ class InstanceMaker:
             current_sequence.append(excavator)
             result.extend(matches)
         return result
+    
+    def __find_combinations(self, iterate) -> List[List[int]]:
+        combinations = []
+        for sub_len in range(3, self.data.excavator_kinds + 1):
+            combinations.append(list(itertools.combinations(iterate, sub_len)))
+        return combinations

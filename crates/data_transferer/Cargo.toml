@@ -1,0 +1,8 @@
+[package]
+name = "data_transferer"
+edition.workspace = true
+version.workspace = true
+
+[dependencies]
+mysql = "25.0.1"
+data_dealer = { path = "../data_dealer" }

@@ -12,6 +12,7 @@ exclude = ["crates/annealers"]
 
 [dependencies]
 data_dealer.workspace = true
+data_transferer.workspace = true
 # py3_controller.workspace = true
 
 [workspace.package]
@@ -20,3 +21,4 @@ version = "0.1.0"
 
 [workspace.dependencies]
 data_dealer = { path = "crates/data_dealer" }
+data_transferer = { path = "crates/data_transferer" }
