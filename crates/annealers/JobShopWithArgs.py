@@ -12,7 +12,7 @@ from utils import *
 import json
 
 class JobShopWithArgs:
-    def __init__(self, instance_solver: InstanceSolver):
+    def __init__(self, required_excavator_kinds, required_truck_kinds, instance_solver: InstanceSolver):
 
         self.excavator_truck_dict: Dict[int, int] = { excavator: truck for excavator, truck in 
                             zip(instance_solver.excavator_list, instance_solver.truck_list) }

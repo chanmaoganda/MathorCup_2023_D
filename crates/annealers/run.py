@@ -8,7 +8,7 @@ from InstanceMaker import InstanceMaker
 from InstanceSolver import InstanceSolver
 
 def solve_one_instance_one_iteration(instance_solver : InstanceSolver):
-    jobshop = JobShopWithArgs(instance_solver)
+    jobshop = JobShopWithArgs(4, 3, instance_solver)
     jobshop.solve()
 
 def solve_one_instance(instance_solvers: List[InstanceSolver]):
@@ -25,8 +25,3 @@ def solve_all_instances(num_processes : int):
         solve_one_instance(instance_list)
     end = time.time()
     print(f"Time taken: {end - start} seconds")
-    
-# solve_all_instances(1000)
-instance_maker = InstanceMaker()
-combination = instance_maker.make_combinations()
-print(combination)

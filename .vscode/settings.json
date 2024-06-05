@@ -5,7 +5,9 @@
         "cformat",
         "ising",
         "jobshop",
+        "kaiwu",
         "Mathor",
+        "ndarray",
         "qubo"
     ]
 }
