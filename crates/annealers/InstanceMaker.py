@@ -53,3 +53,4 @@ class InstanceMaker:
         for sub_len in range(3, self.data.excavator_kinds + 1):
             combinations.append(list(itertools.combinations(iterate, sub_len)))
         return combinations
+    

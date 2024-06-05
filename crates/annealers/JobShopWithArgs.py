@@ -7,17 +7,15 @@ from GeneratorConstraintHandler import GeneratorConstraintHandler
 from Object import Object
 from QuboUtil import QuboUtil
 from Solution import Solution
-from InstanceSolver import InstanceSolver
+from Instance import Instance
 from utils import *
 import json
 
 class JobShopWithArgs:
-    def __init__(self, required_excavator_kinds, required_truck_kinds, instance_solver: InstanceSolver):
-
-        self.excavator_truck_dict: Dict[int, int] = { excavator: truck for excavator, truck in 
-                            zip(instance_solver.excavator_list, instance_solver.truck_list) }
-        self.data = instance_solver.data
-        self.sequence_number = instance_solver.iteration
+    def __init__(self, instance: Instance):
+        self.excavator_truck_dict: Dict[int, int] = instance.excavator_truck_dict
+        self.data = instance.data
+        self.sequence_number = instance.iteration
         self.qubo_util = QuboUtil()
         self.generator_constraint_handler = GeneratorConstraintHandler(self.qubo_util, self.data, self.excavator_truck_dict)
         self.best_solution = {0 : 7, 1 : 7, 3: 2}
