@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 import kaiwu as kw
 from math import log2, ceil
@@ -48,6 +47,7 @@ static_y = [0,1,3]
 
 def func(static_y: list):
     cnt = 0
+    # print(et[0][0], et[1][1], et[3][2])
     minicost = 0;
     for i in static_y:
         minicost += costs[i]
@@ -61,21 +61,31 @@ def func(static_y: list):
     print(f'usedcost: {usedCosts}')
 
     # 为每种挖掘机计算最大购买数量
-    max_purchases = [(total_budget-minicost+cost) // cost for cost in usedCosts]
+    max_purchases = [(total_budget-minicost+cost)// cost for cost in usedCosts]
     print(max_purchases)
 
     maxN = 0
-    for i in n: 
-        if i > maxN:
+    for i in n:
+        if i> maxN:
             maxN = i
     print(f'maxN: {maxN}')
 
-    max_purchasesNew = [min(value, maxN) for value in max_purchases]
+    max_purchasesNew = []
+    for i in max_purchases:
+        if i> maxN:
+            max_purchasesNew.append(maxN)
+        else:
+            max_purchasesNew.append(i)
     print(max_purchasesNew)
 
     # 计算表示每个数量所需的二进制变量数 xi所对应的ti的数量
-    bits_per_purchase = np.array([to_bin(purchase) for purchase in max_purchasesNew])
+    bits_per_purchase = [to_bin(purchase) for purchase in max_purchasesNew]
     print(bits_per_purchase)
+
+    # 计算需要添加的辅助变量的二进制位数
+    # bits_purchase_s = [int(ceil(log2(bits + 1))) for bits in bits_per_purchase]
+    # print("here is the value")
+    # print(bits_purchase_s)
 
     # 对于每个挖掘机，创建购买数量的二进制变量 ti
     machine_vars = {}
@@ -104,13 +114,13 @@ def func(static_y: list):
         sm[f'sm_{j}'] = kw.qubo.binary(f'sm_{j}')
         cnt += 1
 
-    print('建立的kij为:', kij)
+    print('建立的kij为：', kij)
 
     # for i in range(len(static_y)):
     #     zi[f'z_{static_y[i]}'] = kw.qubo.binary(f'z{static_y[i]}')
     #     cnt += 1
 
-    print('建立的zi为:',zij)
+    print('建立的zi为：',zij)
 
     # cost_con_num = int(ceil(log2(total_budget-minicost)))
     cost_con_num = int(ceil(log2(100)))
@@ -201,10 +211,10 @@ def func(static_y: list):
     globalwc = []
     globalzi = []
     globalkc = []
+    globalwk = []
 
     count = 0
-    np_array = np.array(opt[0])
-    for sol in np_array[:1000]:
+    for sol in opt[0]:
         cim_sol = sol * sol[-1]
         variables = obj_ising.get_variables()
         # Substitute the spin vector and obtain the result dictionary
@@ -252,13 +262,11 @@ def func(static_y: list):
                 wc.append(v)
                 # print(f"{i}: {v}")
 
-            if wc != [7,7,2]:
-                continue
-            
-            print(wc)
-            print('挖机和矿车匹配关系：')
-            for k, v in kij.items():
-                print(f"{k}: {v}: {kw.qubo.get_val(v, sol_dict0)}")
+            if wc == [7,7,2]:
+                print(wc)
+                print('挖机和矿车匹配关系：')
+                for k, v in kij.items():
+                    print(f"{k}: {v}: {kw.qubo.get_val(v, sol_dict0)}")
 
             zi_cons_val = {}
             kij_cons_val = {}
@@ -269,7 +277,7 @@ def func(static_y: list):
                 for j in range(J):
                     if et[static_y[i]][j] != 0:
                         zi_cons_val[f'z{static_y[i]}_{j}'] = kw.qubo.get_val(zi_cons[f'z{static_y[i]}_{j}'],
-                                                                                sol_dict0)
+                                                                             sol_dict0)
 
             for j in range(J):
                 kij_cons_val1[f'tru2_con{j}'] = kw.qubo.get_val(truck_constraints[f'tru2_con{j}'], sol_dict0)
@@ -303,7 +311,82 @@ def func(static_y: list):
                                     wk.append(j)
 
                 print(f"===================================================={wk}")
-        
+
+                real_obj, realwc, realkc, realzii = getSolution(wk, machine_values)
+
+                if real_obj > globalObj:
+                    globalObj = real_obj
+                    globalwc = realwc
+                    globalzi = realzii
+                    globalkc = realkc
+                    globalwk = wk
+
+    #             # print(static_y[ct])
+    #             if v * et[static_y[ct]][static_k[ct]] > n[static_k[ct]]:
+    #                 kc.append(n[static_k[ct]])
+    #                 if (n[static_k[ct]] % et[static_y[ct]][static_k[ct]]) == 1:
+    #                     wc.append(n[static_k[ct]] // et[static_y[ct]][static_k[ct]] + 1)
+    #                     zii.append(1)
+    #                 else:
+    #                     wc.append(n[static_k[ct]] // et[static_y[ct]][static_k[ct]])
+    #                     zii.append(0)
+    #             else:
+    #                 kc.append(v * et[static_y[ct]][static_k[ct]])
+    #                 zii.append(0)
+    #                 wc.append(v)
+    #             ct += 1
+    #
+    #         print(wc)
+    #         print(zii)
+    #         print(kc)
+    #
+    #         ct = 0
+    #         for v in wc:
+    #             real_obj += 160 * V[static_y[ct]] * R[static_y[ct]] * 20 * v * 60
+    #             real_obj -= 160 * C_oil_i[static_y[ct]] * v * 60
+    #             real_obj -= C_ren_i[static_y[ct]] * v * 60
+    #             real_obj -= C_wei_i[static_y[ct]] * v * 60
+    #             real_obj -= C_cai[static_y[ct]] * v * 10000
+    #             ct += 1
+    #
+    #         ct = 0
+    #         for v in zii:
+    #             real_obj -= 160 * V[static_y[ct]] * R[static_y[ct]] * 20 * 0.5 * v * 60
+    #             ct += 1
+    #
+    #         ct = 0
+    #         for v in kc:
+    #             print(f"矿车数量: {v}")
+    #             real_obj -= 160 * C_oil_j[static_k[ct]] * v * 60
+    #             real_obj -= C_ren_j[static_k[ct]] * v * 60
+    #             real_obj -= C_wei_j[static_k[ct]] * v * 60
+    #             ct += 1
+    #         print(real_obj)
+    #
+    #         if real_obj > globalObj:
+    #             globalObj = real_obj
+    #             globalwc = wc
+    #             globalzi = zii
+    #             globalkc = kc
+    #
+    #     for k1, v in machine_values.items():
+    #         print(f"{k1}: {v}")
+    #
+        count += 1
+        if count > 1000:
+            break
+    #
+    # print(f"number of solution {count}")
+    # print(f"number of waji {globalwc}")
+    # print(f"number of zi {globalzi}")
+    # print(f"number of kuangche {globalkc}")
+    print(f"===========================================")
+    print(globalObj)
+    print(globalwc)
+    print(globalzi)
+    print(globalkc)
+    print(globalwk)
+
     best = opt[0][0]
     # If the linear term variable is -1, perform a flip
     cim_best = best * best[-1]
@@ -361,7 +444,7 @@ def func(static_y: list):
         print("超出预算！")
     else:
         print("未超出预算。")
-        getSolution(kij, machine_values)
+
 
     print(f"obj Value: {obj_val}")
     print(f"objective_function Value: {objective_function_val}")
@@ -381,13 +464,29 @@ def func(static_y: list):
     print(value)
     print()
 
-def getSolution(static_k, machine_values: dict):
+    wk = []
+    for i in range(I):
+        if i in static_y:
+            for j in range(J):
+                if et[i][j] != 0:
+                    if int(kw.qubo.get_val(kij[f'k_{i}_{j}'], sol_dict)) == 1:
+                        wk.append(j)
+
+    realObjvalue, realWC, realKC, realzi = getSolution(wk, machine_values)
+    print(realObjvalue)
+    print(realWC)
+    print(realKC)
+    print(realzi)
+
+def getSolution(static_k, machine_values):
     real_obj = 0
     ct = 0
     wc = []
     kc = []
     zii = []
     for i, v in machine_values.items():
+        print(f"{i}: {v}")
+        # print(static_y[ct])
         if v * et[static_y[ct]][static_k[ct]] > n[static_k[ct]]:
             kc.append(n[static_k[ct]])
             if (n[static_k[ct]] % et[static_y[ct]][static_k[ct]]) == 1:
@@ -401,7 +500,9 @@ def getSolution(static_k, machine_values: dict):
             zii.append(0)
             wc.append(v)
         ct += 1
-
+    print(wc)
+    print(zii)
+    print(kc)
     ct = 0
     for v in wc:
         real_obj += 160 * V[static_y[ct]] * R[static_y[ct]] * 20 * v * 60
@@ -410,20 +511,23 @@ def getSolution(static_k, machine_values: dict):
         real_obj -= C_wei_i[static_y[ct]] * v * 60
         real_obj -= C_cai[static_y[ct]] * v * 10000
         ct += 1
-
     ct = 0
     for v in zii:
         real_obj -= 160 * V[static_y[ct]] * R[static_y[ct]] * 20 * 0.5 * v * 60
         ct += 1
-
     ct = 0
     for v in kc:
+        print(f"矿车数量: {v}")
         real_obj -= 160 * C_oil_j[static_k[ct]] * v * 60
         real_obj -= C_ren_j[static_k[ct]] * v * 60
         real_obj -= C_wei_j[static_k[ct]] * v * 60
         ct += 1
     print(real_obj)
-    return real_obj
+    print(wc)
+    print(kc)
+    print('==============')
+    return real_obj, wc, kc, zii
+
 
 func(static_y)
 
