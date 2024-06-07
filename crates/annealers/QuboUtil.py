@@ -8,16 +8,16 @@ class QuboUtil:
     def __init__(self):
         self.total_bits : int = 0
     
-    def convert_qubo_ndarray_from_number(self, number : int, name : str) -> ndarray:
+    def generate_qubo_ndarray_from_number(self, number : int, name : str) -> ndarray:
         current_bits = int2binary(number)
         self.total_bits += current_bits
         return kaiwu.qubo.ndarray(current_bits, name, kaiwu.qubo.binary)
     
-    def convert_qubo_ndarray_from_bits(self, bits: int, name : str) -> ndarray:
+    def generate_qubo_ndarray_from_bits(self, bits: int, name : str) -> ndarray:
         self.total_bits += bits
         return kaiwu.qubo.ndarray(bits, name, kaiwu.qubo.binary)
     
-    def convert_qubo_binary(self, name : str):
+    def generate_qubo_binary(self, name : str):
         self.total_bits += 1
         return kaiwu.qubo.binary(name)
     
@@ -30,7 +30,7 @@ class QuboUtil:
     def make_qubo_ndarray_sum(self, qubo_array: ndarray):
         return self.make_qubo_ndarray_condition_sum(qubo_array, lambda index: True)
 
-    def convert_qubo_constraint(self, constraint, name : str):
+    def generate_qubo_constraint(self, constraint, name : str):
         return kaiwu.qubo.constraint((constraint) ** 2, name)
     
     def show_detail(self, qubo_expr):

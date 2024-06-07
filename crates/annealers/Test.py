@@ -72,7 +72,7 @@ def func(static_y: list):
 
     max_purchasesNew = []
     for i in max_purchases:
-        if i> maxN:
+        if i > maxN:
             max_purchasesNew.append(maxN)
         else:
             max_purchasesNew.append(i)
@@ -107,12 +107,7 @@ def func(static_y: list):
                 if et[i][j] != 0:
                     kij[f'k_{i}_{j}'] = kw.qubo.binary(f'k_{i}{j}')
                     zij[f'z_{i}_{j}'] = kw.qubo.binary(f'z_{i}{j}')
-                    cnt += 1
-
-    sm = {}
-    for j in range(J):
-        sm[f'sm_{j}'] = kw.qubo.binary(f'sm_{j}')
-        cnt += 1
+                    cnt += 2
 
     print('建立的kij为：', kij)
 
