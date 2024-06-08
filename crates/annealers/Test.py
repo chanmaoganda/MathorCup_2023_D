@@ -143,9 +143,7 @@ def func(static_y: list):
     for j in range(J):
         truck_constraints[f'tru2_con{j}'] = (
             kw.qubo.constraint(
-                (kw.qubo.sum(kij[f'k_{static_y[i]}_{j}'] for i in range(len(static_y)) if et[static_y[i]][j] != 0)
-                 # + sm[f'sm_{j}']
-                 - 1) ** 2,
+                (kw.qubo.sum(kij[f'k_{static_y[i]}_{j}'] for i in range(len(static_y)) if et[static_y[i]][j] != 0) - 1) ** 2,
                 name=f'tru2_con{j}'))
 
     # 计算zi的约束

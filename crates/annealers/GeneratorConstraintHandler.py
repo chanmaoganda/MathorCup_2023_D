@@ -18,15 +18,8 @@ class GeneratorConstraintHandler:
         data = self.data
         qubo = self.qubo_util
         if dict_type_checker(excavator_numbers, str, ndarray):
-            # TODO:change the below expression if u wanna change this one
             return (20 * data.excavator_produce_efficiency[excavator_index] * (qubo.make_qubo_ndarray_sum(excavator_numbers[f'excavator{excavator_index}']) 
                                                 - 0.5 * half_used_excavator_bits[f'excavator{excavator_index}_half_used']) 
-                    for excavator_index in self.excavator_truck_dict.keys())
-        
-        if dict_type_checker(excavator_numbers, int, float):
-            # TODO:change the upper expression if u wanna change this one
-            return (20 * data.excavator_produce_efficiency[excavator_index] * (excavator_numbers[excavator_index] 
-                                                - 0.5 * half_used_excavator_bits[excavator_index]) 
                     for excavator_index in self.excavator_truck_dict.keys())
         return (0 for _ in self.excavator_truck_dict.keys())
     
@@ -78,19 +71,17 @@ class GeneratorConstraintHandler:
     def total_revenue_expression_factory(self, produce, oil_consumption_cost, maintenance_cost, precurement_cost):
         return 160 * 60 * produce - 160 * 60 * oil_consumption_cost - 60 * maintenance_cost - 10000 * precurement_cost
     
-    def object_expression_factory(self, total_revenue, budget_constraint, truck_num_constraint: dict):
+    def object_expression_factory(self, total_revenue, budget_constraint, excavator_single_match_constraint: dict,
+                                  truck_single_match_constraint: dict):
         qubo = self.qubo_util
         budget_param = 30000000000
-        truck_num_param = 100000000000
-        if dict_key_checker(truck_num_constraint, str):
-            # TODO:change the below expression if u wanna change this one
-            return - total_revenue + budget_param * budget_constraint + truck_num_param * qubo.kaiwu_sum_proxy(
-                truck_num_constraint[f'excavator{excavator_index}_truck{truck_index}_constraint']
-                for excavator_index, truck_index in self.excavator_truck_dict.items())
-        
-        if dict_key_checker(truck_num_constraint, int):
-            # TODO:change the upper expression if u wanna change this one
-            return - total_revenue + budget_param * budget_constraint + truck_num_param * sum(
-                constraint_value ** 2 for constraint_value in truck_num_constraint.values()
-            )
+        excavator_single_match_param = 100000000000
+        truck_single_match_param = 100000000000
+        if dict_key_checker(excavator_single_match_constraint, str):
+            return - total_revenue + budget_param * budget_constraint + excavator_single_match_param * qubo.kaiwu_sum_proxy(
+                excavator_single_match_constraint[f'excavator{excavator_index}_single_match_constraint']
+                    for excavator_index in self.excavator_truck_dict.keys()) + truck_single_match_param * qubo.kaiwu_sum_proxy(
+                truck_single_match_constraint[f'truck{truck_index}_single_match_constraint']
+                    for truck_index in self.excavator_truck_dict.values())
+
         return 0
