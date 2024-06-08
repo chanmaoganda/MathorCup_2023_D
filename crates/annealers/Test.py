@@ -36,8 +36,11 @@ C_wei_j =[2000,3000,4000]  # Truck maintenance cost
 n = [7,7,3] # Number of trucks of type j
 et = [[1, 0, 0], [2, 1, 0], [2, 2, 1], [0, 2, 1]]  # Excavator-truck requirements
 
-static_y = [0, 1, 3]
+# number of trucks of each type
 static_k = [0, 1, 2]
+
+# number of excavators of each type
+static_y = [0, 1, 3]
 
 def solve(static_y: list):
     cnt = 0
@@ -96,7 +99,7 @@ def solve(static_y: list):
 
     for i in range(I):
         if i in static_y:
-            for j in range(J):
+            for j in range(len(static_k)):
                 if et[i][j] != 0:
                     kij[f'k_{i}_{j}'] = kw.qubo.binary(f'k_{i}{j}')
                     zij[f'z_{i}_{j}'] = kw.qubo.binary(f'z_{i}{j}')
@@ -129,11 +132,11 @@ def solve(static_y: list):
     assign_truck_constraints = {}
     for i in range(len(static_y)):
         assign_truck_constraints[f'tru_con{static_y[i]}'] = (
-            kw.qubo.constraint((kw.qubo.sum(kij[f'k_{static_y[i]}_{j}'] for j in range(J) if et[static_y[i]][j] != 0)-1) ** 2, name=f'tru_con{static_y[i]}'))
+            kw.qubo.constraint((kw.qubo.sum(kij[f'k_{static_y[i]}_{j}'] for j in range(len(static_k)) if et[static_y[i]][j] != 0)-1) ** 2, name=f'tru_con{static_y[i]}'))
 
     # 每种矿车最多只分配一类挖机
     truck_constraints = {}
-    for j in range(J):
+    for j in range(len(static_k)):
         truck_constraints[f'tru2_con{j}'] = (
             kw.qubo.constraint(
                 (kw.qubo.sum(kij[f'k_{static_y[i]}_{j}'] for i in range(len(static_y)) if et[static_y[i]][j] != 0) - 1) ** 2,
@@ -142,7 +145,7 @@ def solve(static_y: list):
     # 计算zi的约束
     zi_cons = {}
     for i in range(len(static_y)):
-        for h in range(J):
+        for h in range(len(static_k)):
             if et[static_y[i]][h] != 0:
                 zi_cons[f'z{static_y[i]}_{h}'] = kw.qubo.constraint(
                 (kw.qubo.sum(machine_vars[f'machine{static_y[i]}'][j] * (2**j) for j in range(len(machine_vars[f'machine{static_y[i]}'])))
@@ -151,17 +154,17 @@ def solve(static_y: list):
                         - kij[f'k_{static_y[i]}_{h}'] * n[h]) ** 2, name=f'zcons{static_y[i]}_{h}')
 
     C_oil_j0 = kw.qubo.sum(kw.qubo.sum(machine_vars[f'machine{static_y[i]}'][j] * (2**j) for j in range(len(machine_vars[f'machine{static_y[i]}'])))
-                              * kw.qubo.sum(C_oil_j[h] * kij[f'k_{static_y[i]}_{h}']*et[static_y[i]][h] for h in range(J) if et[static_y[i]][h] != 0) for i in range(len(static_y)))
+                              * kw.qubo.sum(C_oil_j[h] * kij[f'k_{static_y[i]}_{h}']*et[static_y[i]][h] for h in range(len(static_k)) if et[static_y[i]][h] != 0) for i in range(len(static_y)))
 
-    C_oil_j1 = kw.qubo.sum(kw.qubo.sum(C_oil_j[h] * zij[f'z_{static_y[i]}_{h}'] for h in range(J) if et[static_y[i]][h]!= 0) for i in range(len(static_y)))
+    C_oil_j1 = kw.qubo.sum(kw.qubo.sum(C_oil_j[h] * zij[f'z_{static_y[i]}_{h}'] for h in range(len(static_k)) if et[static_y[i]][h]!= 0) for i in range(len(static_y)))
 
     C_renwei_j0 = kw.qubo.sum(kw.qubo.sum(machine_vars[f'machine{static_y[i]}'][j] * (2 ** j) for j in range(len(machine_vars[f'machine{static_y[i]}'])))
-                           * kw.qubo.sum(C_oil_j[h] * kij[f'k_{static_y[i]}_{h}'] * et[static_y[i]][h] for h in range(J) if f'k_{static_y[i]}_{h}' in kij) for i in range(len(static_y)))
-    C_renwei_j1 = kw.qubo.sum(kw.qubo.sum(C_oil_j[h] * zij[f'z_{static_y[i]}_{h}'] for h in range(J) if f'k_{static_y[i]}_{h}' in kij) for i in range(len(static_y)))
+                           * kw.qubo.sum(C_oil_j[h] * kij[f'k_{static_y[i]}_{h}'] * et[static_y[i]][h] for h in range(len(static_k)) if f'k_{static_y[i]}_{h}' in kij) for i in range(len(static_y)))
+    C_renwei_j1 = kw.qubo.sum(kw.qubo.sum(C_oil_j[h] * zij[f'z_{static_y[i]}_{h}'] for h in range(len(static_k)) if f'k_{static_y[i]}_{h}' in kij) for i in range(len(static_y)))
 
     total_revenue = (
           160 * kw.qubo.sum(V[static_y[i]] * R[static_y[i]] * 20 * (kw.qubo.sum(machine_vars[f'machine{static_y[i]}'][j] * (2**j) for j in range(len(machine_vars[f'machine{static_y[i]}'])))
-                                                                    - 0.5 * kw.qubo.sum(zij[f'z_{static_y[i]}_{h}'] for h in range(J) if f'k_{static_y[i]}_{h}' in kij)) for i in range(len(static_y)))*60
+                                                                    - 0.5 * kw.qubo.sum(zij[f'z_{static_y[i]}_{h}'] for h in range(len(static_k)) if f'k_{static_y[i]}_{h}' in kij)) for i in range(len(static_y)))*60
         - 160 * kw.qubo.sum(C_oil_i[static_y[i]] * kw.qubo.sum(machine_vars[f'machine{static_y[i]}'][j] * (2**j) for j in range(len(machine_vars[f'machine{static_y[i]}']))) for i in range(len(static_y)))*60
         - 160 * (C_oil_j0 - C_oil_j1) *60
         - kw.qubo.sum(C_ren_i[static_y[i]] * kw.qubo.sum(machine_vars[f'machine{static_y[i]}'][j] * (2**j) for j in range(len(machine_vars[f'machine{static_y[i]}']))) for i in range(len(static_y)))*60
@@ -171,9 +174,9 @@ def solve(static_y: list):
     )
 
     obj = (-total_revenue + 30000000000*budget_constraint
-        + kw.qubo.sum(1000000000*assign_truck_constraints[f'tru_con{static_y[i]}'] for i in range(J))
-        + kw.qubo.sum(100000000000*truck_constraints[f'tru2_con{j}'] for j in range(J))
-        # + kw.qubo.sum(100000000000*kw.qubo.sum(zi_cons[f'z{static_y[i]}_{h}'] for h in range(J) if et[static_y[i]][h] != 0) for i in range(J))
+        + kw.qubo.sum(1000000000*assign_truck_constraints[f'tru_con{static_y[i]}'] for i in range(len(static_k)))
+        + kw.qubo.sum(100000000000*truck_constraints[f'tru2_con{j}'] for j in range(len(static_k)))
+        # + kw.qubo.sum(100000000000*kw.qubo.sum(zi_cons[f'z{static_y[i]}_{h}'] for h in range(len(static_k)) if et[static_y[i]][h] != 0) for i in range(len(static_k)))
            )
 
     obj = kw.qubo.make(obj)
@@ -255,14 +258,14 @@ def solve(static_y: list):
         zi_cons_val = {}
         kij_cons_val = {}
         kij_cons_val1 = {}
-        for i in range(3):
+        for i in range(len(static_y)):
             kij_cons_val[f'tru_con{static_y[i]}'] = kw.qubo.get_val(
                 assign_truck_constraints[f'tru_con{static_y[i]}'], sol_dict0)
-            for j in range(J):
+            for j in range(len(static_k)):
                 if et[static_y[i]][j] != 0:
                     zi_cons_val[f'z{static_y[i]}_{j}'] = kw.qubo.get_val(zi_cons[f'z{static_y[i]}_{j}'],
                                                                             sol_dict0)
-        kij_cons_val1 = { f'tru2_con{j}' : kw.qubo.get_val(truck_constraints[f'tru2_con{j}'], sol_dict0) for j in range(J) }
+        kij_cons_val1 = { f'tru2_con{j}' : kw.qubo.get_val(truck_constraints[f'tru2_con{j}'], sol_dict0) for j in range(len(static_k)) }
         
         # print(f"truck_constraints Value1: {kij_cons_val}")
         # print(f"truck_constraints Value2: {kij_cons_val1}")
@@ -289,7 +292,7 @@ def solve(static_y: list):
         for k, v in kij.items():
             print(f"{k}: {v}: {kw.qubo.get_val(v, sol_dict0)}")
 
-        wk = [j for i in range(I) if i in static_y for j in range(J) 
+        wk = [j for i in range(I) if i in static_y for j in range(len(static_k)) 
               if et[i][j] != 0 and kw.qubo.get_val(kij[f'k_{i}_{j}'], sol_dict0)]
 
 
