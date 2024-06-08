@@ -231,13 +231,13 @@ def solve(static_y: list):
         # 计算总成本
             total_cost += quantity * costs[static_y[i]]
         # 输出结果
-        print(f"总成本: {total_cost}")
+        # print(f"总成本: {total_cost}")
         # 检查是否超出预算
         if total_cost > total_budget:
-            print("超出预算！")
+            # print("超出预算！")
             continue
         
-        print("未超出预算。")
+        # print("未超出预算。")
         real_obj = 0
         ct = 0
         wc = []
@@ -246,11 +246,11 @@ def solve(static_y: list):
         for i, v in machine_values.items():
             wc.append(v)
 
-        if wc == [7,7,2]:
-            print(wc)
-            print('挖机和矿车匹配关系：')
-            for k, v in kij.items():
-                print(f"{k}: {v}: {kw.qubo.get_val(v, sol_dict0)}")
+        # if wc == [7,7,2]:
+        #     print(wc)
+        #     print('挖机和矿车匹配关系：')
+        #     for k, v in kij.items():
+        #         print(f"{k}: {v}: {kw.qubo.get_val(v, sol_dict0)}")
 
         zi_cons_val = {}
         kij_cons_val = {}
@@ -264,8 +264,8 @@ def solve(static_y: list):
                                                                             sol_dict0)
         kij_cons_val1 = { f'tru2_con{j}' : kw.qubo.get_val(truck_constraints[f'tru2_con{j}'], sol_dict0) for j in range(J) }
         
-        print(f"truck_constraints Value1: {kij_cons_val}")
-        print(f"truck_constraints Value2: {kij_cons_val1}")
+        # print(f"truck_constraints Value1: {kij_cons_val}")
+        # print(f"truck_constraints Value2: {kij_cons_val1}")
 
         constraintViolate = False
         for bits in kij_cons_val.values():
