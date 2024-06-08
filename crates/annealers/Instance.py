@@ -10,9 +10,10 @@ class Instance:
         """
         self.excavator_list = excavator_list
         self.truck_list = truck_list
+        self.iteration = 0
         self.data = data
-        self.excavator_truck_dict =  { excavator: truck for excavator, truck in 
-                            zip(self.excavator_list, self.truck_list) }
+        self.truck_kind_dict = { truck: self.data.total_truck_numbers[truck] for truck in self.truck_list }
+
     
     def assign_iteration(self, iteration: int):
         self.iteration = iteration

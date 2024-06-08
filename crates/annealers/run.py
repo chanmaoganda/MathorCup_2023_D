@@ -6,6 +6,7 @@ import time
 
 from InstanceMaker import InstanceMaker
 from Instance import Instance
+from DataStorage import DataStorage
 
 def solve_one_instance_one_iteration():
     instance_maker : InstanceMaker = InstanceMaker()
@@ -27,4 +28,15 @@ def solve_one_instance_one_iteration():
         
     jobshop = JobShopWithArgs(instance_solver)
     jobshop.solve()
-    
+
+data = DataStorage(total_budget = 2400, excavator_bucket = [0.9, 1.2, 0.8, 2.1], excavator_efficiency = [190, 175, 165, 150], 
+                    excavator_oil_consumption = [28,30,34,38], truck_oil_consumption = [18, 22, 27],
+                    excavator_labor_cost = [7000, 7500, 8500, 9000], truck_labor_cost = [6000, 7000, 8000],
+                    excavator_maintenance_cost = [1000, 1500, 2000, 3000], truck_maintenance_cost = [2000, 3000, 4000],
+                    excavator_precurement_cost = [100, 140, 300, 320], 
+                    excavators_trucks_match_dict = { 0 : [1, 0, 0], 1 : [2, 1, 0], 2: [2, 2, 1], 3: [0, 2, 1]},
+                    total_truck_numbers = [7, 7, 3])
+
+instance = Instance([0, 1, 3], [0, 1, 2], data)
+job_shop = JobShopWithArgs(instance)
+job_shop.solve()

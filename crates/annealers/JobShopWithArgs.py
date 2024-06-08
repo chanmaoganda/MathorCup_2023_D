@@ -15,7 +15,7 @@ import json
 
 class JobShopWithArgs:
     def __init__(self, instance: Instance):
-        self.excavator_truck_dict: Dict[int, int] = instance.excavator_truck_dict
+        self.truck_kind_dict: Dict[int, int] = instance.truck_kind_dict
         self.data = instance.data
         self.sequence_number = instance.iteration
         self.qubo_util = QuboUtil()
@@ -61,7 +61,7 @@ class JobShopWithArgs:
         used_truck_numbers : Dict[str, ndarray] = dict() # this dictionary refers to common binary variable list in qubo
         half_used_excavator_bits = dict() # this dictionary refers to a variable in qubo
         
-        excavator_truck_usage = {   f'excavator{excavator_index}_truck{truck_index}_usage' : 
+        excavator_truck_usage = { f'excavator{excavator_index}_truck{truck_index}_usage' : 
                                     self.qubo_util.generate_qubo_binary(f'excavator_{excavator_index}_truck_{truck_index}_usage') 
                     for excavator_index in self.excavator_truck_dict.keys() for truck_index in self.excavator_truck_dict.values()
                         if self.data.excavators_trucks_match_dict[excavator_index][truck_index] != 0}
@@ -77,13 +77,13 @@ class JobShopWithArgs:
         return Variables(excavator_numbers, used_truck_numbers, excavator_truck_usage, half_used_excavator_bits, cost_con_s)
     
     def choose_min_purchase(self) -> List[int]:
+        data = self.data
         theatrical_max_purchases = list(
             make_mapped_generator(self.data.excavator_precurement_cost, lambda cost : self.data.total_budget // cost)
         )
-        requested_truck_map = {excavator_index: self.data.total_truck_numbers[truck_index] 
-                               for excavator_index, truck_index in self.excavator_truck_dict.items() 
-                               if self.data.excavators_trucks_match_dict[excavator_index][truck_index] != 0
-                        }
+        requested_truck_map = {excavator_index: max((self.truck_kind_dict[truck_index] // match for match in ))
+                    for excavator_index in self.excavator_truck_dict.keys() 
+                    }
         requested_truck_list = [requested_truck_map.get(excavator_index, 0) for excavator_index in range(self.data.excavator_kinds)]
         
         return list(min(value1, value2) for value1, value2 in zip(theatrical_max_purchases, requested_truck_list))
@@ -106,7 +106,9 @@ class JobShopWithArgs:
         for excavator_index in self.excavator_truck_dict.keys():
             constraint_expression = (qubo.kaiwu_sum_proxy(
                 (excavator_truck_usage[f'excavator_{excavator_index}_truck_{truck_index}'] 
-                    for truck_index in self.excavator_truck_dict.values())))
+                    for truck_index in self.excavator_truck_dict.values() 
+                        if f'excavator_{excavator_index}_truck_{truck_index}_usage' in excavator_truck_usage.keys() )
+                ))
             
             excavator_single_match_constraint[f'excavator{excavator_index}_single_match_constraint'] = qubo.generate_qubo_constraint(
                 constraint_expression, f'excavator{excavator_index}_single_match_constraint'
@@ -115,7 +117,9 @@ class JobShopWithArgs:
         for truck_index in self.excavator_truck_dict.values():
             constraint_expression = (qubo.kaiwu_sum_proxy(
                 (excavator_truck_usage[f'excavator_{excavator_index}_truck_{truck_index}'] 
-                    for excavator_index in self.excavator_truck_dict.keys())))
+                    for excavator_index in self.excavator_truck_dict.keys()
+                     if f'excavator_{excavator_index}_truck_{truck_index}_usage' in excavator_truck_usage.keys() )
+                ))
             
             truck_single_match_constraint[f'truck{truck_index}_single_match_constraint'] = qubo.generate_qubo_constraint(
                 constraint_expression, f'truck{truck_index}_single_match_constraint'
