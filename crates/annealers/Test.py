@@ -36,18 +36,11 @@ C_wei_j =[2000,3000,4000]  # Truck maintenance cost
 n = [7,7,3] # Number of trucks of type j
 et = [[1, 0, 0], [2, 1, 0], [2, 2, 1], [0, 2, 1]]  # Excavator-truck requirements
 
-# 定义记录变量数目的变量
+static_y = [0, 1, 3]
+static_k = [0, 1, 2]
 
-# 要买的挖掘机型号
-# instance_maker = InstanceMaker()
-# instances = instance_maker.make_all_instances()
-# print(instances)
-
-static_y = [0,1,3]
-
-def func(static_y: list):
+def solve(static_y: list):
     cnt = 0
-    # print(et[0][0], et[1][1], et[3][2])
     minicost = 0;
     for i in static_y:
         minicost += costs[i]
@@ -206,13 +199,11 @@ def func(static_y: list):
     globalkc = []
     globalwk = []
 
-    count = 0
-    for sol in opt[0]:
+    for index in range(1000):
+        sol = opt[0][index]
         cim_sol = sol * sol[-1]
         variables = obj_ising.get_variables()
-        # Substitute the spin vector and obtain the result dictionary
         sol_dict0 = kw.qubo.get_sol_dict(cim_sol, variables)
-        # print(sol_dict0)
 
         obj_val = kw.qubo.get_val(obj, sol_dict0)
         objective_function_val = kw.qubo.get_val(total_revenue, sol_dict0)
@@ -237,142 +228,85 @@ def func(static_y: list):
         # 遍历每种挖掘机
         total_cost = 0
         for i, (machine, quantity) in enumerate(machine_values.items()):
-            # 计算总成本
+        # 计算总成本
             total_cost += quantity * costs[static_y[i]]
         # 输出结果
         print(f"总成本: {total_cost}")
         # 检查是否超出预算
         if total_cost > total_budget:
             print("超出预算！")
-        else:
-            print("未超出预算。")
-            real_obj = 0
-            ct = 0
-            wc = []
-            kc = []
-            zii = []
-            for i, v in machine_values.items():
-                wc.append(v)
-                # print(f"{i}: {v}")
+            continue
+        
+        print("未超出预算。")
+        real_obj = 0
+        ct = 0
+        wc = []
+        kc = []
+        zii = []
+        for i, v in machine_values.items():
+            wc.append(v)
 
-            if wc == [7,7,2]:
-                print(wc)
-                print('挖机和矿车匹配关系：')
-                for k, v in kij.items():
-                    print(f"{k}: {v}: {kw.qubo.get_val(v, sol_dict0)}")
+        if wc == [7,7,2]:
+            print(wc)
+            print('挖机和矿车匹配关系：')
+            for k, v in kij.items():
+                print(f"{k}: {v}: {kw.qubo.get_val(v, sol_dict0)}")
 
-            zi_cons_val = {}
-            kij_cons_val = {}
-            kij_cons_val1 = {}
-            for i in range(3):
-                kij_cons_val[f'tru_con{static_y[i]}'] = kw.qubo.get_val(
-                    assign_truck_constraints[f'tru_con{static_y[i]}'], sol_dict0)
-                for j in range(J):
-                    if et[static_y[i]][j] != 0:
-                        zi_cons_val[f'z{static_y[i]}_{j}'] = kw.qubo.get_val(zi_cons[f'z{static_y[i]}_{j}'],
-                                                                             sol_dict0)
-
+        zi_cons_val = {}
+        kij_cons_val = {}
+        kij_cons_val1 = {}
+        for i in range(3):
+            kij_cons_val[f'tru_con{static_y[i]}'] = kw.qubo.get_val(
+                assign_truck_constraints[f'tru_con{static_y[i]}'], sol_dict0)
             for j in range(J):
-                kij_cons_val1[f'tru2_con{j}'] = kw.qubo.get_val(truck_constraints[f'tru2_con{j}'], sol_dict0)
+                if et[static_y[i]][j] != 0:
+                    zi_cons_val[f'z{static_y[i]}_{j}'] = kw.qubo.get_val(zi_cons[f'z{static_y[i]}_{j}'],
+                                                                            sol_dict0)
+        kij_cons_val1 = { f'tru2_con{j}' : kw.qubo.get_val(truck_constraints[f'tru2_con{j}'], sol_dict0) for j in range(J) }
+        
+        print(f"truck_constraints Value1: {kij_cons_val}")
+        print(f"truck_constraints Value2: {kij_cons_val1}")
 
-            print(f"truck_constraints Value1: {kij_cons_val}")
-            print(f"truck_constraints Value2: {kij_cons_val1}")
-
-            constraintViolate = False
-            for f1, bits in kij_cons_val.items():
-                if int(bits) == 1:
-                    constraintViolate = True
-                    break
-
-            if constraintViolate == False:
-                for f1, bits in kij_cons_val1.items():
-                    if int(bits) == 1:
-                        constraintViolate = True
-                        break
-
-            if constraintViolate == False:
-                print(f"start to recalculate the objective")
-                for k, v in kij.items():
-                    print(f"{k}: {v}: {kw.qubo.get_val(v, sol_dict0)}")
-
-                wk = []
-                for i in range(I):
-                    if i in static_y:
-                        for j in range(J):
-                            if et[i][j] != 0:
-                                if int(kw.qubo.get_val(kij[f'k_{i}_{j}'], sol_dict0)) == 1:
-                                    wk.append(j)
-
-                print(f"===================================================={wk}")
-
-                real_obj, realwc, realkc, realzii = getSolution(wk, machine_values)
-
-                if real_obj > globalObj:
-                    globalObj = real_obj
-                    globalwc = realwc
-                    globalzi = realzii
-                    globalkc = realkc
-                    globalwk = wk
-
-    #             # print(static_y[ct])
-    #             if v * et[static_y[ct]][static_k[ct]] > n[static_k[ct]]:
-    #                 kc.append(n[static_k[ct]])
-    #                 if (n[static_k[ct]] % et[static_y[ct]][static_k[ct]]) == 1:
-    #                     wc.append(n[static_k[ct]] // et[static_y[ct]][static_k[ct]] + 1)
-    #                     zii.append(1)
-    #                 else:
-    #                     wc.append(n[static_k[ct]] // et[static_y[ct]][static_k[ct]])
-    #                     zii.append(0)
-    #             else:
-    #                 kc.append(v * et[static_y[ct]][static_k[ct]])
-    #                 zii.append(0)
-    #                 wc.append(v)
-    #             ct += 1
-    #
-    #         print(wc)
-    #         print(zii)
-    #         print(kc)
-    #
-    #         ct = 0
-    #         for v in wc:
-    #             real_obj += 160 * V[static_y[ct]] * R[static_y[ct]] * 20 * v * 60
-    #             real_obj -= 160 * C_oil_i[static_y[ct]] * v * 60
-    #             real_obj -= C_ren_i[static_y[ct]] * v * 60
-    #             real_obj -= C_wei_i[static_y[ct]] * v * 60
-    #             real_obj -= C_cai[static_y[ct]] * v * 10000
-    #             ct += 1
-    #
-    #         ct = 0
-    #         for v in zii:
-    #             real_obj -= 160 * V[static_y[ct]] * R[static_y[ct]] * 20 * 0.5 * v * 60
-    #             ct += 1
-    #
-    #         ct = 0
-    #         for v in kc:
-    #             print(f"矿车数量: {v}")
-    #             real_obj -= 160 * C_oil_j[static_k[ct]] * v * 60
-    #             real_obj -= C_ren_j[static_k[ct]] * v * 60
-    #             real_obj -= C_wei_j[static_k[ct]] * v * 60
-    #             ct += 1
-    #         print(real_obj)
-    #
-    #         if real_obj > globalObj:
-    #             globalObj = real_obj
-    #             globalwc = wc
-    #             globalzi = zii
-    #             globalkc = kc
-    #
-    #     for k1, v in machine_values.items():
-    #         print(f"{k1}: {v}")
-    #
-        count += 1
-        if count > 1000:
+        constraintViolate = False
+        for bits in kij_cons_val.values():
+            if int(bits) != 1:
+                continue
+            constraintViolate = True
             break
-    #
-    # print(f"number of solution {count}")
-    # print(f"number of waji {globalwc}")
-    # print(f"number of zi {globalzi}")
-    # print(f"number of kuangche {globalkc}")
+        if constraintViolate:
+            continue
+
+
+        for bits in kij_cons_val1.values():
+            if int(bits) == 1:
+                constraintViolate = True
+                break
+        if constraintViolate:
+            continue
+        
+        
+        print(f"start to recalculate the objective")
+        for k, v in kij.items():
+            print(f"{k}: {v}: {kw.qubo.get_val(v, sol_dict0)}")
+
+        wk = [j for i in range(I) if i in static_y for j in range(J) 
+              if et[i][j] != 0 and kw.qubo.get_val(kij[f'k_{i}_{j}'], sol_dict0)]
+
+
+        print(f"===================================================={wk}")
+
+        real_obj, realwc, realkc, realzii = getSolution(wk, machine_values)
+
+        if real_obj <= globalObj:
+            continue
+
+        globalObj = real_obj
+        globalwc = realwc
+        globalzi = realzii
+        globalkc = realkc
+        globalwk = wk
+        # end of for loop
+        
     print(f"===========================================")
     print(globalObj)
     print(globalwc)
@@ -380,96 +314,6 @@ def func(static_y: list):
     print(globalkc)
     print(globalwk)
 
-    best = opt[0][0]
-    # If the linear term variable is -1, perform a flip
-    cim_best = best * best[-1]
-    # Get the list of variable names
-    vars = obj_ising.get_variables()
-    # Substitute the spin vector and obtain the result dictionary
-    sol_dict = kw.qubo.get_sol_dict(cim_best, vars)
-    # print(f"number of solution {count}")
-    print(sol_dict)
-
-    obj_val = kw.qubo.get_val(obj, sol_dict)
-    objective_function_val = kw.qubo.get_val(total_revenue, sol_dict)
-    budget_constraint_val = kw.qubo.get_val(budget_constraint, sol_dict)
-
-    # truck_constraints_val = {}
-    # for j in range(3):
-    # truck_constraints_val[f'val{static_k[j]}'] = kw.qubo.get_val(truck_constraints[f'tru_con{static_k[j]}'], sol_dict)
-
-    zi_cons_val = {}
-    kij_cons_val = {}
-    kij_cons_val1 = {}
-    for i in range(3):
-        kij_cons_val[f'tru_con{static_y[i]}'] = kw.qubo.get_val(assign_truck_constraints[f'tru_con{static_y[i]}'], sol_dict)
-        for j in range(J):
-            if et[static_y[i]][j]!= 0:
-                zi_cons_val[f'z{static_y[i]}_{j}'] = kw.qubo.get_val(zi_cons[f'z{static_y[i]}_{j}'], sol_dict)
-
-    for j in range(J):
-        kij_cons_val1[f'tru2_con{j}'] = kw.qubo.get_val(truck_constraints[f'tru2_con{j}'], sol_dict)
-
-
-    # 从QUBO解中获取每种挖掘机的数量
-    machine_values = {}
-    for machine, bits in machine_vars.items():
-        # 计算从二进制到整数的转换
-        value = sum(kw.qubo.get_val(bit, sol_dict) * (2 ** j) for j, bit in enumerate(bits))
-        machine_values[machine] = value
-
-    print('挖机和矿车匹配关系：')
-    for k, v in kij.items():
-        print(f"{k}: {v}: {kw.qubo.get_val(v, sol_dict)}")
-
-    # 初始化总成本和总利润变量
-    total_cost = 0
-    total_profit = 0
-
-    # 遍历每种挖掘机
-    for i, (machine, quantity) in enumerate(machine_values.items()):
-        # 计算总成本
-        total_cost += quantity * costs[static_y[i]]
-    # 输出结果
-    print(f"总成本: {total_cost}")
-    # 检查是否超出预算
-    if total_cost > total_budget:
-        print("超出预算！")
-    else:
-        print("未超出预算。")
-
-
-    print(f"obj Value: {obj_val}")
-    print(f"objective_function Value: {objective_function_val}")
-    print(f"budget_constraint Value: {budget_constraint_val}")
-    print(f"zi_cons Value: {zi_cons_val}")
-    print(f"truck_constraints Value1: {kij_cons_val}")
-    print(f"truck_constraints Value2: {kij_cons_val1}")
-
-    print("每种挖掘机的购买数量:")
-    for k, v in machine_values.items():
-        print(f"{k}: {v}")
-
-    # 有多少预算没有用完
-    x_val = kw.qubo.get_array_val(cost_con_s, sol_dict)
-    value = sum(x_val[j] * (2 ** j) for j, bit in enumerate(x_val))
-    print(x_val)
-    print(value)
-    print()
-
-    wk = []
-    for i in range(I):
-        if i in static_y:
-            for j in range(J):
-                if et[i][j] != 0:
-                    if int(kw.qubo.get_val(kij[f'k_{i}_{j}'], sol_dict)) == 1:
-                        wk.append(j)
-
-    realObjvalue, realWC, realKC, realzi = getSolution(wk, machine_values)
-    print(realObjvalue)
-    print(realWC)
-    print(realKC)
-    print(realzi)
 
 def getSolution(static_k, machine_values):
     real_obj = 0
@@ -522,5 +366,5 @@ def getSolution(static_k, machine_values):
     return real_obj, wc, kc, zii
 
 
-func(static_y)
+solve(static_y)
 
