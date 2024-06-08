@@ -38,11 +38,11 @@ C_wei_j =[2000,3000,4000]  # Truck maintenance cost
 n = [7,7,3] # Number of trucks of type j
 et = [[1, 0, 0], [2, 1, 0], [2, 2, 1], [0, 2, 1]]  # Excavator-truck requirements
 
-# number of trucks of each type
-static_k = [0, 1, 2]
+# number of trucks(static_k) of each type
+truck = [0, 1, 2]
 
-# number of excavators of each type
-static_y = [0, 1, 3]
+# number of excavators(static_y) of each type
+excavator = [0, 1, 3]
 
 
 
@@ -63,7 +63,11 @@ def generate_combinations_range(iterate: list, subset_range: range) -> list:
     return combinations
 
     
-def solve(static_y: list):
+def solve(static_y: list, static_k: list):
+    """
+    static_y -> excavator
+    static_k -> truck
+    """
     cnt = 0
     minicost = 0;
     for i in static_y:
@@ -312,7 +316,7 @@ def solve(static_y: list):
 
         print(f"===================================================={wk}")
 
-        real_obj, realwc, realkc, realzii = getSolution(wk, machine_values)
+        real_obj, realwc, realkc, realzii = getSolution(wk, static_y, machine_values)
 
         if real_obj <= globalObj:
             continue
@@ -332,7 +336,7 @@ def solve(static_y: list):
     print(globalwk)
 
 
-def getSolution(static_k, machine_values):
+def getSolution(cal_truck, cal_excavator, machine_values):
     real_obj = 0
     ct = 0
     wc = []
@@ -341,16 +345,16 @@ def getSolution(static_k, machine_values):
     for i, v in machine_values.items():
         print(f"{i}: {v}")
         # print(static_y[ct])
-        if v * et[static_y[ct]][static_k[ct]] > n[static_k[ct]]:
-            kc.append(n[static_k[ct]])
-            if (n[static_k[ct]] % et[static_y[ct]][static_k[ct]]) == 1:
-                wc.append(n[static_k[ct]] // et[static_y[ct]][static_k[ct]] + 1)
+        if v * et[cal_excavator[ct]][cal_truck[ct]] > n[cal_truck[ct]]:
+            kc.append(n[cal_truck[ct]])
+            if (n[cal_truck[ct]] % et[cal_excavator[ct]][cal_truck[ct]]) == 1:
+                wc.append(n[cal_truck[ct]] // et[cal_excavator[ct]][cal_truck[ct]] + 1)
                 zii.append(1)
             else:
-                wc.append(n[static_k[ct]] // et[static_y[ct]][static_k[ct]])
+                wc.append(n[cal_truck[ct]] // et[cal_excavator[ct]][cal_truck[ct]])
                 zii.append(0)
         else:
-            kc.append(v * et[static_y[ct]][static_k[ct]])
+            kc.append(v * et[cal_excavator[ct]][cal_truck[ct]])
             zii.append(0)
             wc.append(v)
         ct += 1
@@ -359,22 +363,22 @@ def getSolution(static_k, machine_values):
     print(kc)
     ct = 0
     for v in wc:
-        real_obj += 160 * V[static_y[ct]] * R[static_y[ct]] * 20 * v * 60
-        real_obj -= 160 * C_oil_i[static_y[ct]] * v * 60
-        real_obj -= C_ren_i[static_y[ct]] * v * 60
-        real_obj -= C_wei_i[static_y[ct]] * v * 60
-        real_obj -= C_cai[static_y[ct]] * v * 10000
+        real_obj += 160 * V[cal_excavator[ct]] * R[cal_excavator[ct]] * 20 * v * 60
+        real_obj -= 160 * C_oil_i[cal_excavator[ct]] * v * 60
+        real_obj -= C_ren_i[cal_excavator[ct]] * v * 60
+        real_obj -= C_wei_i[cal_excavator[ct]] * v * 60
+        real_obj -= C_cai[cal_excavator[ct]] * v * 10000
         ct += 1
     ct = 0
     for v in zii:
-        real_obj -= 160 * V[static_y[ct]] * R[static_y[ct]] * 20 * 0.5 * v * 60
+        real_obj -= 160 * V[cal_excavator[ct]] * R[cal_excavator[ct]] * 20 * 0.5 * v * 60
         ct += 1
     ct = 0
     for v in kc:
         print(f"矿车数量: {v}")
-        real_obj -= 160 * C_oil_j[static_k[ct]] * v * 60
-        real_obj -= C_ren_j[static_k[ct]] * v * 60
-        real_obj -= C_wei_j[static_k[ct]] * v * 60
+        real_obj -= 160 * C_oil_j[cal_truck[ct]] * v * 60
+        real_obj -= C_ren_j[cal_truck[ct]] * v * 60
+        real_obj -= C_wei_j[cal_truck[ct]] * v * 60
         ct += 1
     print(real_obj)
     print(wc)
@@ -383,10 +387,10 @@ def getSolution(static_k, machine_values):
     return real_obj, wc, kc, zii
 
 
-# solve(static_y)
-len_combination = generate_combinations([1, 2, 3, 4], 3)
-print('len_combination:', len_combination)
-lower_bound_combination = generate_combinations_lower_bound([1, 2, 3, 4], 3)
-print('lower_bound_combination:', lower_bound_combination)
-range_combination = generate_combinations_range([1, 2, 3, 4], range(3, 5))
-print('range_combination:', range_combination)
+solve(excavator, truck)
+# len_combination = generate_combinations([1, 2, 3, 4], 3)
+# print('len_combination:', len_combination)
+# lower_bound_combination = generate_combinations_lower_bound([1, 2, 3, 4], 3)
+# print('lower_bound_combination:', lower_bound_combination)
+# range_combination = generate_combinations_range([1, 2, 3, 4], range(3, 5))
+# print('range_combination:', range_combination)
