@@ -1,3 +1,5 @@
+import itertools
+from typing import List
 import pandas as pd
 import kaiwu as kw
 from math import log2, ceil
@@ -42,6 +44,25 @@ static_k = [0, 1, 2]
 # number of excavators of each type
 static_y = [0, 1, 3]
 
+
+
+def generate_combinations(iterate: list, subset_len: int) -> list:
+    return list(itertools.combinations(iterate, subset_len))
+
+def generate_combinations_lower_bound(iterate: list, lower_bound: int) -> list:
+    combinations = []
+    for i in range(lower_bound, len(iterate) + 1):
+        combinations.extend(list(itertools.combinations(iterate, i)))
+    return combinations
+
+def generate_combinations_range(iterate: list, subset_range: range) -> list:
+    combinations = []
+    for sub_len in subset_range:
+        sub_combinations = list(itertools.combinations(iterate, sub_len))
+        combinations.extend(sub_combinations)
+    return combinations
+
+    
 def solve(static_y: list):
     cnt = 0
     minicost = 0;
@@ -57,7 +78,7 @@ def solve(static_y: list):
     print(f'usedcost: {usedCosts}')
 
     # 为每种挖掘机计算最大购买数量
-    max_purchases = [(total_budget-minicost+cost)// cost for cost in usedCosts]
+    max_purchases = [( total_budget - minicost + cost) // cost for cost in usedCosts]
     print(max_purchases)
 
     maxN = 0
@@ -77,11 +98,6 @@ def solve(static_y: list):
     # 计算表示每个数量所需的二进制变量数 xi所对应的ti的数量
     bits_per_purchase = [to_bin(purchase) for purchase in max_purchasesNew]
     print(bits_per_purchase)
-
-    # 计算需要添加的辅助变量的二进制位数
-    # bits_purchase_s = [int(ceil(log2(bits + 1))) for bits in bits_per_purchase]
-    # print("here is the value")
-    # print(bits_purchase_s)
 
     # 对于每个挖掘机，创建购买数量的二进制变量 ti
     machine_vars = {}
@@ -105,13 +121,13 @@ def solve(static_y: list):
                     zij[f'z_{i}_{j}'] = kw.qubo.binary(f'z_{i}{j}')
                     cnt += 2
 
-    print('建立的kij为：', kij)
+    print('建立的kij为:', kij)
 
     # for i in range(len(static_y)):
     #     zi[f'z_{static_y[i]}'] = kw.qubo.binary(f'z{static_y[i]}')
     #     cnt += 1
 
-    print('建立的zi为：',zij)
+    print('建立的zi为:',zij)
 
     # cost_con_num = int(ceil(log2(total_budget-minicost)))
     cost_con_num = int(ceil(log2(100)))
@@ -175,9 +191,7 @@ def solve(static_y: list):
 
     obj = (-total_revenue + 30000000000*budget_constraint
         + kw.qubo.sum(1000000000*assign_truck_constraints[f'tru_con{static_y[i]}'] for i in range(len(static_k)))
-        + kw.qubo.sum(100000000000*truck_constraints[f'tru2_con{j}'] for j in range(len(static_k)))
-        # + kw.qubo.sum(100000000000*kw.qubo.sum(zi_cons[f'z{static_y[i]}_{h}'] for h in range(len(static_k)) if et[static_y[i]][h] != 0) for i in range(len(static_k)))
-           )
+        + kw.qubo.sum(100000000000*truck_constraints[f'tru2_con{j}'] for j in range(len(static_k))) )
 
     obj = kw.qubo.make(obj)
     obj_ising = kw.qubo.cim_ising_model(obj)
@@ -369,5 +383,10 @@ def getSolution(static_k, machine_values):
     return real_obj, wc, kc, zii
 
 
-solve(static_y)
-
+# solve(static_y)
+len_combination = generate_combinations([1, 2, 3, 4], 3)
+print('len_combination:', len_combination)
+lower_bound_combination = generate_combinations_lower_bound([1, 2, 3, 4], 3)
+print('lower_bound_combination:', lower_bound_combination)
+range_combination = generate_combinations_range([1, 2, 3, 4], range(3, 5))
+print('range_combination:', range_combination)
