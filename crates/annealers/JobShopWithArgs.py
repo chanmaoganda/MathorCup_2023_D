@@ -14,17 +14,22 @@ from utils import *
 import json
 
 class JobShopWithArgs:
+    
     def __init__(self, instance: Instance):
-        self.truck_kind_dict: Dict[int, int] = instance.truck_kind_dict
+        self.truck_number_dict: Dict[int, int] = instance.truck_number_dict
         self.data = instance.data
         self.sequence_number = instance.iteration
+
+        self.excavator_list = instance.excavator_list
+        self.truck_list = instance.truck_list
+
         self.qubo_util = QuboUtil()
-        self.generator_constraint_handler = GeneratorConstraintHandler(self.qubo_util, self.data, self.excavator_truck_dict)
+        self.generator_constraint_handler = GeneratorConstraintHandler(self.qubo_util, instance)
         self.best_solution = {0 : 7, 1 : 7, 3: 2}
     
     def gen_output_dir(self) -> str:
         parent_dir = '/home/avania/projects/python/MathorCupD-2023/data'
-        excavators = [key for key in self.excavator_truck_dict.keys()]
+        excavators = self.excavator_truck_dict.keys()
         directory = f'{excavators[0]}-{excavators[1]}-{excavators[2]}'
         return os.path.join(parent_dir, directory)
         
@@ -49,44 +54,45 @@ class JobShopWithArgs:
             self.write_solution(index)
 
     def init_quantum_variables(self) -> Variables:
-        self.max_purchases = self.choose_min_purchase()
-
+        max_purchases = self.choose_min_purchase()
         excavator_numbers : Dict[str, ndarray] = dict()
-        for index, number in enumerate(self.max_purchases):
-            if index not in self.excavator_truck_dict.keys():
-                continue
-            excavator_name = f'excavator{index}'
-            excavator_numbers[excavator_name] = self.qubo_util.generate_qubo_ndarray_from_number(number, excavator_name)
+        for excavator_index, max_purchase_number in max_purchases.items():
+            excavator_name = f'excavator{excavator_index}'
+            excavator_numbers[excavator_name] = self.qubo_util.generate_qubo_ndarray_from_number(max_purchase_number, excavator_name)
         
         used_truck_numbers : Dict[str, ndarray] = dict() # this dictionary refers to common binary variable list in qubo
         half_used_excavator_bits = dict() # this dictionary refers to a variable in qubo
-        
-        excavator_truck_usage = { f'excavator{excavator_index}_truck{truck_index}_usage' : 
-                                    self.qubo_util.generate_qubo_binary(f'excavator_{excavator_index}_truck_{truck_index}_usage') 
-                    for excavator_index in self.excavator_truck_dict.keys() for truck_index in self.excavator_truck_dict.values()
-                        if self.data.excavators_trucks_match_dict[excavator_index][truck_index] != 0}
         
         for excavator_index, truck_index in self.excavator_truck_dict.items():
             truck_name = f'truck{truck_index}'
             excavator_name = f'excavator{excavator_index}_half_used'
             used_truck_numbers[truck_name] = self.qubo_util.generate_qubo_ndarray_from_number(self.data.total_truck_numbers[truck_index], truck_name)
             half_used_excavator_bits[excavator_name] = self.qubo_util.generate_qubo_binary(excavator_name)
+        
+        excavator_truck_usage = { f'excavator{excavator_index}_truck{truck_index}_usage' : 
+                                    self.qubo_util.generate_qubo_binary(f'excavator_{excavator_index}_truck_{truck_index}_usage') 
+                    for excavator_index in self.excavator_truck_dict.keys() for truck_index in self.excavator_truck_dict.values()
+                        if self.data.excavators_trucks_match_dict[excavator_index][truck_index] != 0}
 
-        one_piece_cost = sum(self.data.excavator_precurement_cost[index] for index in self.excavator_truck_dict.keys())
+        one_piece_cost = sum(self.data.excavator_precurement_cost[index] for index in self.excavator_list)
         cost_con_s = self.qubo_util.generate_qubo_ndarray_from_number(self.data.total_budget - one_piece_cost, 'cost_con_s')
         return Variables(excavator_numbers, used_truck_numbers, excavator_truck_usage, half_used_excavator_bits, cost_con_s)
     
-    def choose_min_purchase(self) -> List[int]:
+    def choose_min_purchase(self) -> Dict[int, int]:
         data = self.data
         theatrical_max_purchases = list(
-            make_mapped_generator(self.data.excavator_precurement_cost, lambda cost : self.data.total_budget // cost)
+            make_mapped_generator(data.excavator_precurement_cost, lambda cost : ceil(data.total_budget // cost))
         )
-        requested_truck_map = {excavator_index: max((self.truck_kind_dict[truck_index] // match for match in ))
-                    for excavator_index in self.excavator_truck_dict.keys() 
-                    }
-        requested_truck_list = [requested_truck_map.get(excavator_index, 0) for excavator_index in range(self.data.excavator_kinds)]
-        
-        return list(min(value1, value2) for value1, value2 in zip(theatrical_max_purchases, requested_truck_list))
+        requested_excavator_map = {}
+        for excavator_index, matched_truck_numbers in data.excavators_trucks_match_dict.items():
+            max_matched_truck_number = [ ceil(max_truck_number / matched_truck_numbers[truck_index]) 
+                            for truck_index, max_truck_number in self.truck_number_dict.items() if matched_truck_numbers[truck_index] != 0 ]
+            requested_excavator_map[excavator_index] = max(max_matched_truck_number)
+                
+        requested_excavator_list = [requested_excavator_map.get(excavator_index, 0) for excavator_index in self.excavator_list]
+        requested_excavator_purchase_list = [ theatrical_max_purchases[excavator_index] for excavator_index in self.excavator_list ]
+        final_excavator_list = list(min(value1, value2) for value1, value2 in zip(requested_excavator_list, requested_excavator_purchase_list))
+        return {excavator_index : final_excavator_list[index] for index, excavator_index in enumerate(self.excavator_list)}
 
 
     def make_qubo_constraints(self, variables: Variables) -> Constraints:

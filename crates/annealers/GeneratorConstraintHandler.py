@@ -1,16 +1,16 @@
 from typing import Dict, Generator
 
 from numpy import ndarray
-from DataStorage import DataStorage
+from Instance import Instance
 from QuboUtil import QuboUtil
 from utils import dict_key_checker, dict_type_checker
 
 
 class GeneratorConstraintHandler:
-    def __init__(self, qubo_util: QuboUtil, data: DataStorage, excavator_truck_dict: Dict):
+    def __init__(self, qubo_util: QuboUtil, instance : Instance):
         self.qubo_util = qubo_util
-        self.data = data
-        self.excavator_truck_dict = excavator_truck_dict
+        self.data = Instance.data
+
         
     def excavator_produce_expression_factory(self,
                                             excavator_numbers: Dict,
@@ -30,12 +30,12 @@ class GeneratorConstraintHandler:
         qubo = self.qubo_util
         if dict_type_checker(excavator_numbers, str, ndarray):
             return (7 * (data.excavator_oil_consumption[excavator_index] * qubo.make_qubo_ndarray_sum(excavator_numbers[f'excavator{excavator_index}']) + 
-                         data.truck_oil_cosumption[truck_index] * qubo.make_qubo_ndarray_sum(truck_numbers[f'truck{truck_index}'])) 
+                         data.truck_oil_consumption[truck_index] * qubo.make_qubo_ndarray_sum(truck_numbers[f'truck{truck_index}'])) 
                     for excavator_index, truck_index in self.excavator_truck_dict.items())
         
         if dict_type_checker(excavator_numbers, int, float):
             return (7 * (data.excavator_oil_consumption[excavator_index] * excavator_numbers[excavator_index] + 
-                         data.truck_oil_cosumption[truck_index] * truck_numbers[truck_index]) 
+                         data.truck_oil_consumption[truck_index] * truck_numbers[truck_index]) 
                     for excavator_index, truck_index in self.excavator_truck_dict.items())
         return (0 for _ in self.excavator_truck_dict.keys())
     
