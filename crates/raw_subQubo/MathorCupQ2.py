@@ -38,17 +38,15 @@ et = [[1, 0, 0], [2, 1, 0], [2, 2, 1], [0, 2, 1]]  # Excavator-truck requirement
 # 定义记录变量数目的变量
 
 # 要买的挖掘机型号
+# instance_maker = InstanceMaker()
+# instances = instance_maker.make_all_instances()
+# print(instances)
+
 static_y = [0,1,3]
-# 对应的矿车型号
-static_k = [0,1,2]
 
-def func(static_y: list, static_k: list):
-
-    n = [6,6,2]
+def func(static_y: list):
     cnt = 0
-
-    print(et[0][0], et[1][1], et[3][2])
-
+    # print(et[0][0], et[1][1], et[3][2])
     minicost = 0;
     for i in static_y:
         minicost += costs[i]
@@ -64,17 +62,24 @@ def func(static_y: list, static_k: list):
     # 为每种挖掘机计算最大购买数量
     max_purchases = [(total_budget-minicost+cost)// cost for cost in usedCosts]
     print(max_purchases)
+
+    maxN = 0
+    for i in n:
+        if i> maxN:
+            maxN = i
+    print(f'maxN: {maxN}')
+
+    max_purchasesNew = []
+    for i in max_purchases:
+        if i> maxN:
+            max_purchasesNew.append(maxN)
+        else:
+            max_purchasesNew.append(i)
+    print(max_purchasesNew)
+
     # 计算表示每个数量所需的二进制变量数 xi所对应的ti的数量
-    bits_per_purchase = [to_bin(purchase) for purchase in max_purchases]
+    bits_per_purchase = [to_bin(purchase) for purchase in max_purchasesNew]
     print(bits_per_purchase)
-
-
-    total_budget = 2400-minicost
-
-    # 计算需要添加的辅助变量的二进制位数
-    # bits_purchase_s = [int(ceil(log2(bits + 1))) for bits in bits_per_purchase]
-    # print("here is the value")
-    # print(bits_purchase_s)
 
     # 对于每个挖掘机，创建购买数量的二进制变量 ti
     machine_vars = {}
@@ -86,28 +91,35 @@ def func(static_y: list, static_k: list):
     print(machine_vars[f'machine{3}'][0])
 
     # 创建k变量，表示i挖机分配的j矿车的数量
-    k = {}
-    zi = {}
+    kij = {}
+    zij = {}
     print(len(static_y))
 
-    for i in range(len(static_y)):
-        k[f'k_{static_y[i]}'] = kw.qubo.ndarray(to_bin(n[static_k[i]]), f'k_{static_y[i]}', kw.qubo.binary)
-        zi[f'z_{static_y[i]}'] = kw.qubo.binary(f'z{static_y[i]}')
-        cnt += (to_bin(n[static_k[i]]) + 1)
+    for i in range(I):
+        if i in static_y:
+            for j in range(J):
+                if et[i][j] != 0:
+                    kij[f'k_{i}_{j}'] = kw.qubo.binary(f'k_{i}{j}')
+                    zij[f'z_{i}_{j}'] = kw.qubo.binary(f'z_{i}{j}')
+                    cnt += 1
 
-    print('建立的zi为：',zi)
+    sm = {}
+    for j in range(J):
+        sm[f'sm_{j}'] = kw.qubo.binary(f'sm_{j}')
+        cnt += 1
+
+    print('建立的kij为：', kij)
+
+    # for i in range(len(static_y)):
+    #     zi[f'z_{static_y[i]}'] = kw.qubo.binary(f'z{static_y[i]}')
+    #     cnt += 1
+
+    print('建立的zi为：',zij)
 
     # cost_con_num = int(ceil(log2(total_budget-minicost)))
     cost_con_num = int(ceil(log2(100)))
     cost_con_s = kw.qubo.ndarray(cost_con_num,'cost_con_s',kw.qubo.binary)
     cnt += cost_con_num
-
-    # 建立矿车数量的辅助变量
-    truck_s = {}
-    for j in range(len(static_k)):
-        truck_s[f'truck{static_k[j]}'] = kw.qubo.ndarray(to_bin(n[static_k[j]]),f'truck{static_k[j]}_s',kw.qubo.binary)
-        cnt += to_bin(n[static_k[j]])
-    print('建立的变量总数为：',cnt)
 
     # 计算总成本表达式
     total_cost_expression = kw.qubo.sum(
@@ -119,47 +131,58 @@ def func(static_y: list, static_k: list):
     # 构建成本约束
     budget_constraint = kw.qubo.constraint((total_budget - total_cost_expression - cost_s_expression)**2, name="budget")
 
-    # 分配的矿车数量小于矿车总数的约束
-    # truck_constraints = {}
-    # for j in range(len(static_k)):
-    #     truck_constraints[f'tru_con{static_k[j]}'] = (
-    #         kw.qubo.constraint((n[static_k[j]]
-    #                             - kw.qubo.sum(k[f'k_{static_y[j]}'][m] * (2 ** m) for m in range(len(k[f'k_{static_y[j]}'])))
-    #                             - kw.qubo.sum(truck_s[f'truck{static_k[j]}'][m] * (2 ** m) for m in range(len(truck_s[f'truck{static_k[j]}'])))) ** 2,
-    #                            name=f'tru_con{static_k[j]}'))
+    # 每个挖机只分配一种矿车
+    assign_truck_constraints = {}
+    for i in range(len(static_y)):
+        assign_truck_constraints[f'tru_con{static_y[i]}'] = (
+            kw.qubo.constraint((kw.qubo.sum(kij[f'k_{static_y[i]}_{j}'] for j in range(J) if et[static_y[i]][j] != 0)-1) ** 2, name=f'tru_con{static_y[i]}'))
 
-
-    # noUse_truck_constraints = {}
-    # for j in range(len(static_k)):
-    #     noUse_truck_constraints[f'tru_con{static_k[j]}'] = (
-    #         kw.qubo.constraint(kw.qubo.sum(truck_s[f'truck{static_k[j]}'][m] * (2 ** m)
-    #                                        for m in range(len(truck_s[f'truck{static_k[j]}']))) ** 2, name=f'tru_con{static_k[j]}'))
+    # 每种矿车最多只分配一类挖机
+    truck_constraints = {}
+    for j in range(J):
+        truck_constraints[f'tru2_con{j}'] = (
+            kw.qubo.constraint(
+                (kw.qubo.sum(kij[f'k_{static_y[i]}_{j}'] for i in range(len(static_y)) if et[static_y[i]][j] != 0)
+                 # + sm[f'sm_{j}']
+                 - 1) ** 2,
+                name=f'tru2_con{j}'))
 
     # 计算zi的约束
     zi_cons = {}
     for i in range(len(static_y)):
-        zi_cons[f'z{static_y[i]}'] = kw.qubo.constraint((kw.qubo.sum(
-            k[f'k_{static_y[i]}'][m1] * (2 ** m1) for m1 in range(len(k[f'k_{static_y[i]}'])))
-                                                + (zi[f'z_{static_y[i]}'])
-                                               - et[static_y[i]][static_k[i]] * kw.qubo.sum(
-            machine_vars[f'machine{static_y[i]}'][m1] * (2 ** m1) for m1 in range(len(machine_vars[f'machine{static_y[i]}'])))) ** 2,
-                                                  name=f'zcons{static_y[i]}')
+        for h in range(J):
+            if et[static_y[i]][h] != 0:
+                zi_cons[f'z{static_y[i]}_{h}'] = kw.qubo.constraint(
+                (kw.qubo.sum(machine_vars[f'machine{static_y[i]}'][j] * (2**j) for j in range(len(machine_vars[f'machine{static_y[i]}'])))
+                        * kij[f'k_{static_y[i]}_{h}'] * et[static_y[i]][h]
+                        + (zij[f'z_{static_y[i]}_{h}'])
+                        - kij[f'k_{static_y[i]}_{h}'] * n[h]) ** 2, name=f'zcons{static_y[i]}_{h}')
+
+    C_oil_j0 = kw.qubo.sum(kw.qubo.sum(machine_vars[f'machine{static_y[i]}'][j] * (2**j) for j in range(len(machine_vars[f'machine{static_y[i]}'])))
+                              * kw.qubo.sum(C_oil_j[h] * kij[f'k_{static_y[i]}_{h}']*et[static_y[i]][h] for h in range(J) if et[static_y[i]][h] != 0) for i in range(len(static_y)))
+
+    C_oil_j1 = kw.qubo.sum(kw.qubo.sum(C_oil_j[h] * zij[f'z_{static_y[i]}_{h}'] for h in range(J) if et[static_y[i]][h]!= 0) for i in range(len(static_y)))
+
+    C_renwei_j0 = kw.qubo.sum(kw.qubo.sum(machine_vars[f'machine{static_y[i]}'][j] * (2 ** j) for j in range(len(machine_vars[f'machine{static_y[i]}'])))
+                           * kw.qubo.sum(C_oil_j[h] * kij[f'k_{static_y[i]}_{h}'] * et[static_y[i]][h] for h in range(J) if f'k_{static_y[i]}_{h}' in kij) for i in range(len(static_y)))
+    C_renwei_j1 = kw.qubo.sum(kw.qubo.sum(C_oil_j[h] * zij[f'z_{static_y[i]}_{h}'] for h in range(J) if f'k_{static_y[i]}_{h}' in kij) for i in range(len(static_y)))
 
     total_revenue = (
-          160 * kw.qubo.sum(V[static_y[i]] * R[static_y[i]] * 20 * (kw.qubo.sum(machine_vars[f'machine{static_y[i]}'][j] * (2**j) for j in range(len(machine_vars[f'machine{static_y[i]}']))) - 0.5 * zi[f'z_{static_y[i]}']) for i in range(len(static_y)))*60
+          160 * kw.qubo.sum(V[static_y[i]] * R[static_y[i]] * 20 * (kw.qubo.sum(machine_vars[f'machine{static_y[i]}'][j] * (2**j) for j in range(len(machine_vars[f'machine{static_y[i]}'])))
+                                                                    - 0.5 * kw.qubo.sum(zij[f'z_{static_y[i]}_{h}'] for h in range(J) if f'k_{static_y[i]}_{h}' in kij)) for i in range(len(static_y)))*60
         - 160 * kw.qubo.sum(C_oil_i[static_y[i]] * kw.qubo.sum(machine_vars[f'machine{static_y[i]}'][j] * (2**j) for j in range(len(machine_vars[f'machine{static_y[i]}']))) for i in range(len(static_y)))*60
-        - 160 * kw.qubo.sum(C_oil_j[static_k[i]] * kw.qubo.sum(k[f'k_{static_y[i]}'][m] * (2**m) for m in range(len(k[f'k_{static_y[i]}']))) for i in range(len(static_k)))*60
+        - 160 * (C_oil_j0 - C_oil_j1) *60
         - kw.qubo.sum(C_ren_i[static_y[i]] * kw.qubo.sum(machine_vars[f'machine{static_y[i]}'][j] * (2**j) for j in range(len(machine_vars[f'machine{static_y[i]}']))) for i in range(len(static_y)))*60
         - kw.qubo.sum(C_wei_i[static_y[i]] * kw.qubo.sum(machine_vars[f'machine{static_y[i]}'][j] * (2**j) for j in range(len(machine_vars[f'machine{static_y[i]}']))) for i in range(len(static_y)))*60
-        - kw.qubo.sum(C_ren_j[static_k[i]] * kw.qubo.sum(k[f'k_{static_y[i]}'][m] * (2**m) for m in range(len(k[f'k_{static_y[i]}']))) for i in range(len(static_y))) * 60
-        - kw.qubo.sum(C_wei_j[static_k[i]] * kw.qubo.sum(k[f'k_{static_y[i]}'][m] * (2**m) for m in range(len(k[f'k_{static_y[i]}']))) for i in range(len(static_y))) * 60
+        - (C_renwei_j0-C_renwei_j1) * 60
         - kw.qubo.sum(C_cai[static_y[i]] * kw.qubo.sum(machine_vars[f'machine{static_y[i]}'][j] * (2**j) for j in range(len(machine_vars[f'machine{static_y[i]}']))) * 10000 for i in range(len(static_y)))
     )
 
     obj = (-total_revenue + 30000000000*budget_constraint
-        # + kw.qubo.sum(10000000*truck_constraints[f'tru_con{static_k[j]}'] for j in range(J))
-        # + kw.qubo.sum(100000000*noUse_truck_constraints[f'tru_con{static_k[j]}'] for j in range(J))
-        + kw.qubo.sum(100000000000*zi_cons[f'z{static_y[i]}'] for i in range(J)))
+        + kw.qubo.sum(1000000000*assign_truck_constraints[f'tru_con{static_y[i]}'] for i in range(J))
+        + kw.qubo.sum(100000000000*truck_constraints[f'tru2_con{j}'] for j in range(J))
+        # + kw.qubo.sum(100000000000*kw.qubo.sum(zi_cons[f'z{static_y[i]}_{h}'] for h in range(J) if et[static_y[i]][h] != 0) for i in range(J))
+           )
 
     obj = kw.qubo.make(obj)
     obj_ising = kw.qubo.cim_ising_model(obj)
@@ -182,6 +205,7 @@ def func(static_y: list, static_k: list):
     globalwc = []
     globalzi = []
     globalkc = []
+    globalwk = []
 
     count = 0
     for sol in opt[0]:
@@ -196,11 +220,20 @@ def func(static_y: list, static_k: list):
         budget_constraint_val = kw.qubo.get_val(budget_constraint, sol_dict0)
 
         # 从QUBO解中获取每种挖掘机的数量
+        solInfea = False
+        solutionInfeasible = 0
         machine_values = {}
         for machine, bits in machine_vars.items():
             # 计算从二进制到整数的转换
             value = sum(kw.qubo.get_val(bit, sol_dict0) * (2 ** j) for j, bit in enumerate(bits))
             machine_values[machine] = value
+            if value == 0:
+                print("挖掘机数量为零！")
+                solutionInfeasible = 1
+                break
+
+        if solutionInfeasible == 1:
+            continue
 
         # 遍历每种挖掘机
         total_cost = 0
@@ -216,72 +249,82 @@ def func(static_y: list, static_k: list):
             print("未超出预算。")
             real_obj = 0
             ct = 0
-
             wc = []
             kc = []
             zii = []
-
             for i, v in machine_values.items():
-                print(f"{i}: {v}")
-                # print(static_y[ct])
-                if v * et[static_y[ct]][static_k[ct]] > n[static_k[ct]]:
-                    kc.append(n[static_k[ct]])
-                    if (n[static_k[ct]] % et[static_y[ct]][static_k[ct]]) == 1:
-                        wc.append(n[static_k[ct]] // et[static_y[ct]][static_k[ct]] + 1)
-                        zii.append(1)
-                    else:
-                        wc.append(n[static_k[ct]] // et[static_y[ct]][static_k[ct]])
-                        zii.append(0)
-                else:
-                    kc.append(v * et[static_y[ct]][static_k[ct]])
-                    zii.append(0)
-                    wc.append(v)
-                ct += 1
+                wc.append(v)
+                # print(f"{i}: {v}")
 
-            print(wc)
-            print(zii)
-            print(kc)
+            if wc == [7,7,2]:
+                print(wc)
+                print('挖机和矿车匹配关系：')
+                for k, v in kij.items():
+                    print(f"{k}: {v}: {kw.qubo.get_val(v, sol_dict0)}")
 
-            ct = 0
-            for v in wc:
-                real_obj += 160 * V[static_y[ct]] * R[static_y[ct]] * 20 * v * 60
-                real_obj -= 160 * C_oil_i[static_y[ct]] * v * 60
-                real_obj -= C_ren_i[static_y[ct]] * v * 60
-                real_obj -= C_wei_i[static_y[ct]] * v * 60
-                real_obj -= C_cai[static_y[ct]] * v * 10000
-                ct += 1
+            zi_cons_val = {}
+            kij_cons_val = {}
+            kij_cons_val1 = {}
+            for i in range(3):
+                kij_cons_val[f'tru_con{static_y[i]}'] = kw.qubo.get_val(
+                    assign_truck_constraints[f'tru_con{static_y[i]}'], sol_dict0)
+                for j in range(J):
+                    if et[static_y[i]][j] != 0:
+                        zi_cons_val[f'z{static_y[i]}_{j}'] = kw.qubo.get_val(zi_cons[f'z{static_y[i]}_{j}'],
+                                                                             sol_dict0)
 
-            ct = 0
-            for v in zii:
-                real_obj -= 160 * V[static_y[ct]] * R[static_y[ct]] * 20 * 0.5 * v * 60
-                ct += 1
+            for j in range(J):
+                kij_cons_val1[f'tru2_con{j}'] = kw.qubo.get_val(truck_constraints[f'tru2_con{j}'], sol_dict0)
 
-            ct = 0
-            for v in kc:
-                print(f"矿车数量: {v}")
-                real_obj -= 160 * C_oil_j[static_k[ct]] * v * 60
-                real_obj -= C_ren_j[static_k[ct]] * v * 60
-                real_obj -= C_wei_j[static_k[ct]] * v * 60
-                ct += 1
-            print(real_obj)
+            print(f"truck_constraints Value1: {kij_cons_val}")
+            print(f"truck_constraints Value2: {kij_cons_val1}")
 
-            if real_obj > globalObj:
-                globalObj = real_obj
-                globalwc = wc
-                globalzi = zii
-                globalkc = kc
+            constraintViolate = False
+            for f1, bits in kij_cons_val.items():
+                if int(bits) == 1:
+                    constraintViolate = True
+                    break
 
-        for k1, v in machine_values.items():
-            print(f"{k1}: {v}")
+            if constraintViolate == False:
+                for f1, bits in kij_cons_val1.items():
+                    if int(bits) == 1:
+                        constraintViolate = True
+                        break
+
+            if constraintViolate == False:
+                print(f"start to recalculate the objective")
+                for k, v in kij.items():
+                    print(f"{k}: {v}: {kw.qubo.get_val(v, sol_dict0)}")
+
+                wk = []
+                for i in range(I):
+                    if i in static_y:
+                        for j in range(J):
+                            if et[i][j] != 0:
+                                if int(kw.qubo.get_val(kij[f'k_{i}_{j}'], sol_dict0)) == 1:
+                                    wk.append(j)
+
+                print(f"===================================================={wk}")
+
+                real_obj, realwc, realkc, realzii = getSolution(wk, machine_values)
+
+                if real_obj > globalObj:
+                    globalObj = real_obj
+                    globalwc = realwc
+                    globalzi = realzii
+                    globalkc = realkc
+                    globalwk = wk
 
         count += 1
         if count > 1000:
             break
 
-    print(f"number of solution {count}")
-    print(f"number of waji {globalwc}")
-    print(f"number of zi {globalzi}")
-    print(f"number of kuangche {globalkc}")
+    print(f"===========================================")
+    print(globalObj)
+    print(globalwc)
+    print(globalzi)
+    print(globalkc)
+    print(globalwk)
 
     best = opt[0][0]
     # If the linear term variable is -1, perform a flip
@@ -290,46 +333,36 @@ def func(static_y: list, static_k: list):
     vars = obj_ising.get_variables()
     # Substitute the spin vector and obtain the result dictionary
     sol_dict = kw.qubo.get_sol_dict(cim_best, vars)
-    print(f"number of solution {count}")
+    # print(f"number of solution {count}")
     print(sol_dict)
 
     obj_val = kw.qubo.get_val(obj, sol_dict)
     objective_function_val = kw.qubo.get_val(total_revenue, sol_dict)
     budget_constraint_val = kw.qubo.get_val(budget_constraint, sol_dict)
-
-    # truck_constraints_val = {}
-    # for j in range(3):
-    #     truck_constraints_val[f'val{static_k[j]}'] = kw.qubo.get_val(truck_constraints[f'tru_con{static_k[j]}'], sol_dict)
-
+    
     zi_cons_val = {}
+    kij_cons_val = {}
+    kij_cons_val1 = {}
     for i in range(3):
-        zi_cons_val[f'z{static_y[i]}'] = kw.qubo.get_val(zi_cons[f'z{static_y[i]}'], sol_dict)
+        kij_cons_val[f'tru_con{static_y[i]}'] = kw.qubo.get_val(assign_truck_constraints[f'tru_con{static_y[i]}'], sol_dict)
+        for j in range(J):
+            if et[static_y[i]][j]!= 0:
+                zi_cons_val[f'z{static_y[i]}_{j}'] = kw.qubo.get_val(zi_cons[f'z{static_y[i]}_{j}'], sol_dict)
+
+    for j in range(J):
+        kij_cons_val1[f'tru2_con{j}'] = kw.qubo.get_val(truck_constraints[f'tru2_con{j}'], sol_dict)
+
+
     # 从QUBO解中获取每种挖掘机的数量
     machine_values = {}
     for machine, bits in machine_vars.items():
         # 计算从二进制到整数的转换
         value = sum(kw.qubo.get_val(bit, sol_dict) * (2 ** j) for j, bit in enumerate(bits))
         machine_values[machine] = value
-    k_values = {}
-    for k, bits in k.items():
-        # 计算从二进制到整数的转换
-        value = sum(kw.qubo.get_val(bit, sol_dict) * (2 ** j) for j, bit in enumerate(bits))
-        k_values[k] = value
 
-    # s_values = {}
-    # for k, bits in truck_s.items():
-    #     # 计算从二进制到整数的转换
-    #     value = sum(kw.qubo.get_val(bit, sol_dict) * (2 ** j) for j, bit in enumerate(bits))
-    #     s_values[k] = value
-
-    # 输出结果
-    print('矿车的分配数量：')
-    for k, v in k_values.items():
-        print(f"{k}: {v}")
-
-    # print('没有使用的矿车数量：')
-    # for k, v in s_values.items():
-    #     print(f"{k}: {v}")
+    print('挖机和矿车匹配关系：')
+    for k, v in kij.items():
+        print(f"{k}: {v}: {kw.qubo.get_val(v, sol_dict)}")
 
     # 初始化总成本和总利润变量
     total_cost = 0
@@ -351,9 +384,9 @@ def func(static_y: list, static_k: list):
     print(f"obj Value: {obj_val}")
     print(f"objective_function Value: {objective_function_val}")
     print(f"budget_constraint Value: {budget_constraint_val}")
-
     print(f"zi_cons Value: {zi_cons_val}")
-    # print(f"truck_constraints Value: {truck_constraints_val}")
+    print(f"truck_constraints Value1: {kij_cons_val}")
+    print(f"truck_constraints Value2: {kij_cons_val1}")
 
     print("每种挖掘机的购买数量:")
     for k, v in machine_values.items():
@@ -364,37 +397,72 @@ def func(static_y: list, static_k: list):
     value = sum(x_val[j] * (2 ** j) for j, bit in enumerate(x_val))
     print(x_val)
     print(value)
+    print()
 
-    zi_val = {}
-    for i in range(3):
-        zi_val[f'z{static_y[i]}'] = kw.qubo.get_val(zi[f'z_{static_y[i]}'], sol_dict)
-    print(f"zi Value: {zi_val}")
+    wk = []
+    for i in range(I):
+        if i in static_y:
+            for j in range(J):
+                if et[i][j] != 0:
+                    if int(kw.qubo.get_val(kij[f'k_{i}_{j}'], sol_dict)) == 1:
+                        wk.append(j)
 
-    #验证目标函数计算
+    realObjvalue, realWC, realKC, realzi = getSolution(wk, machine_values)
+    print(realObjvalue)
+    print(realWC)
+    print(realKC)
+    print(realzi)
+
+def getSolution(static_k, machine_values):
     real_obj = 0
     ct = 0
+    wc = []
+    kc = []
+    zii = []
     for i, v in machine_values.items():
         print(f"{i}: {v}")
+        # print(static_y[ct])
+        if v * et[static_y[ct]][static_k[ct]] > n[static_k[ct]]:
+            kc.append(n[static_k[ct]])
+            if (n[static_k[ct]] % et[static_y[ct]][static_k[ct]]) == 1:
+                wc.append(n[static_k[ct]] // et[static_y[ct]][static_k[ct]] + 1)
+                zii.append(1)
+            else:
+                wc.append(n[static_k[ct]] // et[static_y[ct]][static_k[ct]])
+                zii.append(0)
+        else:
+            kc.append(v * et[static_y[ct]][static_k[ct]])
+            zii.append(0)
+            wc.append(v)
+        ct += 1
+    print(wc)
+    print(zii)
+    print(kc)
+    ct = 0
+    for v in wc:
         real_obj += 160 * V[static_y[ct]] * R[static_y[ct]] * 20 * v * 60
         real_obj -= 160 * C_oil_i[static_y[ct]] * v * 60
         real_obj -= C_ren_i[static_y[ct]] * v * 60
         real_obj -= C_wei_i[static_y[ct]] * v * 60
         real_obj -= C_cai[static_y[ct]] * v * 10000
         ct += 1
-        # print(static_y[ct])
     ct = 0
-    for i, v in zi_val.items():
+    for v in zii:
         real_obj -= 160 * V[static_y[ct]] * R[static_y[ct]] * 20 * 0.5 * v * 60
         ct += 1
     ct = 0
-    for i, v in k_values.items():
+    for v in kc:
         print(f"矿车数量: {v}")
         real_obj -= 160 * C_oil_j[static_k[ct]] * v * 60
         real_obj -= C_ren_j[static_k[ct]] * v * 60
         real_obj -= C_wei_j[static_k[ct]] * v * 60
         ct += 1
     print(real_obj)
+    print(wc)
+    print(kc)
+    print('==============')
+    return real_obj, wc, kc, zii
 
 
-func(static_y, static_k)
+func(static_y)
 
