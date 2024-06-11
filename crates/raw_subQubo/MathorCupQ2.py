@@ -88,7 +88,7 @@ def func(static_y: list):
         machine_vars[f'machine{static_y[i]}'] = kw.qubo.ndarray(n_bits, f"machine{static_y[i]}", kw.qubo.binary)
         cnt += n_bits
     print(machine_vars)
-    # 创建k变量，表示i挖机分配的j矿车的数量
+
     kij = {}
     zij = {}
     print(len(static_y))
@@ -144,7 +144,8 @@ def func(static_y: list):
                         - kij[f'k_{static_y[i]}_{h}'] * n[h]) ** 2, name=f'zcons{static_y[i]}_{h}')
 
     C_oil_j0 = kw.qubo.sum(kw.qubo.sum(machine_vars[f'machine{static_y[i]}'][j] * (2**j) for j in range(len(machine_vars[f'machine{static_y[i]}'])))
-                              * kw.qubo.sum(C_oil_j[h] * kij[f'k_{static_y[i]}_{h}']*et[static_y[i]][h] for h in range(J) if et[static_y[i]][h] != 0) for i in range(len(static_y)))
+                              * kw.qubo.sum(C_oil_j[h] * kij[f'k_{static_y[i]}_{h}']*et[static_y[i]][h] for h in range(J) if et[static_y[i]][h] != 0) 
+                              for i in range(len(static_y)))
 
     C_oil_j1 = kw.qubo.sum(kw.qubo.sum(C_oil_j[h] * zij[f'z_{static_y[i]}_{h}'] for h in range(J) if et[static_y[i]][h]!= 0) for i in range(len(static_y)))
 

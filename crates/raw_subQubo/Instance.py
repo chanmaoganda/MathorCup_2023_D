@@ -1,5 +1,5 @@
 from typing import List
-from crates.raw_subQubo.UtilClasses import DataStorage
+from UtilClasses import DataStorage
 
 
 class Instance:
