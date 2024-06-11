@@ -20,6 +20,13 @@
             "console": "integratedTerminal"
         },
         {
+            "name": "main.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "./crates/raw_subQubo/main.py",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "sub_qubo.py",
             "type": "debugpy",
             "request": "launch",

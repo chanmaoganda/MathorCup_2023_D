@@ -41,14 +41,18 @@ class QuboExprGenerator:
         excavator_number_dict = self.__generate_excavator_max_numbers()
         excavator_number_qubo_dict = {excavator_index : qubo.generate_qubo_ndarray_from_number(max_number, f'excavator_{excavator_index}') 
                                       for excavator_index, max_number in excavator_number_dict.items()}
-        truck_number_qubo_dict = {truck_index : qubo.generate_qubo_ndarray_from_number(max_number, f'truck_{truck_index}') 
-                                  for truck_index, max_number in instance.truck_number_dict.items()} 
         excavator_truck_match_qubo_binary_dict = {(excavator_index, truck_index) : qubo.generate_qubo_binary(f'excavator_{excavator_index}_truck_{truck_index}') 
                                                   for excavator_index in instance.excavator_list for truck_index in instance.truck_list 
                                                    if et_match_dict[excavator_index][truck_index] != 0 }
         excavator_half_use_qubo_binary_dict = {(excavator_index, truck_index): qubo.generate_qubo_binary(f'excavator_{excavator_index}_half_use_truck_{truck_index}') 
                                                for excavator_index in instance.excavator_list for truck_index in instance.truck_list 
                                                if et_match_dict[excavator_index][truck_index] != 0 }
+        
+        # Here we use other info to cal the truck number qubo dict
+        truck_number_qubo_dict = { truck_index: self.qubo_util.kaiwu_sum_proxy(
+                  excavator_truck_match_qubo_binary_dict[(excavator_index, truck_index)] * excavator_number_qubo_dict[excavator_index]
+                  * self.data.excavators_trucks_match_dict[excavator_index][truck_index] - excavator_half_use_qubo_binary_dict[(excavator_index, truck_index)] 
+                  for excavator_index in self.instance.excavator_list) for truck_index in instance.truck_list }
         return Variables(cost_constraint_num, 
                          excavator_number_qubo_dict, 
                          truck_number_qubo_dict, 
