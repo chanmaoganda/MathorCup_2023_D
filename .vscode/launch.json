@@ -20,24 +20,14 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "TestDebugging",
+            "name": "sub_qubo.py",
             "type": "debugpy",
             "request": "launch",
-            "program": "./crates/annealers/test.py",
-            "console": "integratedTerminal",
-            "args": [
-                "1"
-            ]
-        },
-        {
-            "name": "MathorCupQ2",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "MathorCupQ2.py",
+            "program": "./crates/raw_subQubo/MathorCupQ3.py",
             "console": "integratedTerminal"
         },
         {
-            "name": "Python Debugger: Current File",
+            "name": "Python Current File",
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",

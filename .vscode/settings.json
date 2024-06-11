@@ -7,8 +7,12 @@
         "jobshop",
         "kaiwu",
         "Mathor",
+        "minicost",
         "ndarray",
+        "negtail",
         "precurement",
-        "qubo"
+        "qubo",
+        "usedcost",
+        "workhours"
     ]
 }

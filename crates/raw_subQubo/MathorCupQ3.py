@@ -2,15 +2,8 @@ k_val = {'k_0_0': 0, 'k_0_1': 0, 'k_0_2': 5, 'k_1_0': 0, 'k_1_1': 0, 'k_1_2': 0,
 
 import kaiwu as kw
 from math import log2, ceil
-
-def to_bin(num):
-    """
-    计算整数变量需要转化成多少位二进制数的函数
-    :param num: 十进制数
-    :return: 二进制数
-    """
-    bin = int(ceil(log2(num + 1)))
-    return bin
+from DataStorage import DataStorage
+from utils import *
 
 # Assume placeholder sets I for excavators and J for trucks, replace with actual sets.
 I = 10  # Replace with actual excavator types
@@ -27,6 +20,8 @@ C_wei_i =[1000,1500,2000,3000,5000,8000,10000,13000,15000,18000]  # Excavator ma
 C_oil_j = [15,18,22,27,33,40,50,55,64,70]  # Truck oil consumption
 C_ren_j = [5000,6000,7000,8000,9000,10000,11000,12000,13000,15000]  # Truck labor cost
 C_wei_j =[1000,2000,3000,4000,5000,6000,7000,8000,9000,10000]  # Truck maintenance cost
+
+
 n = [5,5,5,5,5,3,3,3,3,3] # Number of trucks of type j
 
 m = [[3,3,2,0,0,0,0,0,0,0],
@@ -41,6 +36,10 @@ m = [[3,3,2,0,0,0,0,0,0,0],
      [0,0,0,0,0,5,5,4,3,3]]  # Excavator-truck requirements
 costs =[100,140,300,320,440,500,640,760,860,1000]
 
+excavator_truck_dict = {index : m[index] for index in range(len(m))}
+data = DataStorage(total_budget, V, R, C_oil_i, C_oil_j, C_ren_i, C_ren_j, C_wei_i, C_wei_j, costs, excavator_truck_dict, n)
+
+
 # 定义记录变量数目的变量
 cnt = 0
 
@@ -50,7 +49,7 @@ sub1_truck = [0,1,2,3,4,5]
 # 为每种挖掘机计算最大购买数量
 max_purchases = [total_budget // cost for cost in costs]
 # 计算表示每个数量所需的二进制变量数 xi所对应的ti的数量
-bits_per_purchase = [to_bin(purchase) for purchase in max_purchases]
+bits_per_purchase = [int2binary(purchase) for purchase in max_purchases]
 # 计算需要添加的辅助变量的二进制位数
 bits_purchase_s = [int(ceil(log2(bits + 1))) for bits in bits_per_purchase]
 
@@ -73,9 +72,9 @@ for i in range(I):
             if j in sub1_truck:
                 if m[i][j]!=0:
                     if k_val[f'k_{i}_{j}'] !=0:
-                        k[f'k_{i}_{j}'] = kw.qubo.ndarray(to_bin(n[j]),f'k_{i}_{j}',kw.qubo.binary)
+                        k[f'k_{i}_{j}'] = kw.qubo.ndarray(int2binary(n[j]),f'k_{i}_{j}',kw.qubo.binary)
                         zij[f'z_{i}_{j}'] = kw.qubo.binary(f'z{i}{j}')
-                        cnt += (to_bin(n[j])+1)
+                        cnt += (int2binary(n[j])+1)
 
 
 
@@ -87,8 +86,8 @@ cnt += cost_con_num
 truck_s = {}
 for j in range(J):
     if j in sub1_truck:
-        truck_s[f'truck{j}'] = kw.qubo.ndarray(to_bin(n[j]),f'truck{j}_s',kw.qubo.binary)
-        cnt += to_bin(n[j])
+        truck_s[f'truck{j}'] = kw.qubo.ndarray(int2binary(n[j]),f'truck{j}_s',kw.qubo.binary)
+        cnt += int2binary(n[j])
 print('建立的变量总数为：',cnt)
 # 计算总成本表达式
 total_cost_expression = kw.qubo.sum(
@@ -236,7 +235,7 @@ sub2_truck = [6,7,8,9]
 # 为每种挖掘机计算最大购买数量
 max_purchases = [total_budget // cost for cost in costs]
 # 计算表示每个数量所需的二进制变量数 xi所对应的ti的数量
-bits_per_purchase = [to_bin(purchase) for purchase in max_purchases]
+bits_per_purchase = [int2binary(purchase) for purchase in max_purchases]
 # 计算需要添加的辅助变量的二进制位数
 bits_purchase_s = [int(ceil(log2(bits + 1))) for bits in bits_per_purchase]
 
@@ -259,9 +258,9 @@ for i in range(I):
             if j in sub2_truck:
                 if m[i][j]!=0:
                     if k_val[f'k_{i}_{j}'] !=0:
-                        k[f'k_{i}_{j}'] = kw.qubo.ndarray(to_bin(n[j]),f'k_{i}_{j}',kw.qubo.binary)
+                        k[f'k_{i}_{j}'] = kw.qubo.ndarray(int2binary(n[j]),f'k_{i}_{j}',kw.qubo.binary)
                         zij[f'z_{i}_{j}'] = kw.qubo.binary(f'z{i}{j}')
-                        cnt += (to_bin(n[j])+1)
+                        cnt += (int2binary(n[j])+1)
 
 
 
@@ -273,8 +272,8 @@ cnt += cost_con_num
 truck_s = {}
 for j in range(J):
     if j in sub2_truck:
-        truck_s[f'truck{j}'] = kw.qubo.ndarray(to_bin(n[j]),f'truck{j}_s',kw.qubo.binary)
-        cnt += to_bin(n[j])
+        truck_s[f'truck{j}'] = kw.qubo.ndarray(int2binary(n[j]),f'truck{j}_s',kw.qubo.binary)
+        cnt += int2binary(n[j])
 print('建立的变量总数为：',cnt)
 # 计算总成本表达式
 total_cost_expression = kw.qubo.sum(

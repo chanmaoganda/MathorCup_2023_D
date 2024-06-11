@@ -14,7 +14,7 @@ class DataStorage:
 
         self.total_budget = total_budget
         self.excavator_oil_consumption = excavator_oil_consumption
-        self.truck_oil_cosumption = truck_oil_consumption
+        self.truck_oil_consumption = truck_oil_consumption
         self.excavator_labor_cost = excavator_labor_cost
         self.truck_labor_cost = truck_labor_cost
         self.excavator_maintenance_cost = excavator_maintenance_cost

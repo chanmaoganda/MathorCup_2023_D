@@ -8,7 +8,7 @@ name = "runner"
 
 [workspace]
 members = ["crates/*"]
-exclude = ["crates/annealers"]
+exclude = ["crates/annealers", "crates/raw_subQubo"]
 
 [dependencies]
 data_dealer.workspace = true
