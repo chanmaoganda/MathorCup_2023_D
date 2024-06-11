@@ -1,5 +1,5 @@
 from math import ceil, log2
-from typing import Callable, Generator, List, Set
+from typing import Callable, Generator, List
 
 def primary_generator_factory(source_array: List, map_method: Callable, index_condition: Callable) -> Generator:
     mapped_array = list(map(map_method, source_array))

@@ -88,8 +88,6 @@ def func(static_y: list):
         machine_vars[f'machine{static_y[i]}'] = kw.qubo.ndarray(n_bits, f"machine{static_y[i]}", kw.qubo.binary)
         cnt += n_bits
     print(machine_vars)
-    print(machine_vars[f'machine{3}'][0])
-
     # 创建k变量，表示i挖机分配的j矿车的数量
     kij = {}
     zij = {}
@@ -103,20 +101,9 @@ def func(static_y: list):
                     zij[f'z_{i}_{j}'] = kw.qubo.binary(f'z_{i}{j}')
                     cnt += 1
 
-    sm = {}
-    for j in range(J):
-        sm[f'sm_{j}'] = kw.qubo.binary(f'sm_{j}')
-        cnt += 1
+    print('建立的kij为:', kij)
+    print('建立的zi为:',zij)
 
-    print('建立的kij为：', kij)
-
-    # for i in range(len(static_y)):
-    #     zi[f'z_{static_y[i]}'] = kw.qubo.binary(f'z{static_y[i]}')
-    #     cnt += 1
-
-    print('建立的zi为：',zij)
-
-    # cost_con_num = int(ceil(log2(total_budget-minicost)))
     cost_con_num = int(ceil(log2(100)))
     cost_con_s = kw.qubo.ndarray(cost_con_num,'cost_con_s',kw.qubo.binary)
     cnt += cost_con_num
@@ -142,9 +129,7 @@ def func(static_y: list):
     for j in range(J):
         truck_constraints[f'tru2_con{j}'] = (
             kw.qubo.constraint(
-                (kw.qubo.sum(kij[f'k_{static_y[i]}_{j}'] for i in range(len(static_y)) if et[static_y[i]][j] != 0)
-                 # + sm[f'sm_{j}']
-                 - 1) ** 2,
+                (kw.qubo.sum(kij[f'k_{static_y[i]}_{j}'] for i in range(len(static_y)) if et[static_y[i]][j] != 0) - 1) ** 2,
                 name=f'tru2_con{j}'))
 
     # 计算zi的约束

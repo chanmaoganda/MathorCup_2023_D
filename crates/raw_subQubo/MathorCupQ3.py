@@ -2,7 +2,7 @@ k_val = {'k_0_0': 0, 'k_0_1': 0, 'k_0_2': 5, 'k_1_0': 0, 'k_1_1': 0, 'k_1_2': 0,
 
 import kaiwu as kw
 from math import log2, ceil
-from DataStorage import DataStorage
+from crates.raw_subQubo.UtilClasses import DataStorage
 from utils import *
 
 # Assume placeholder sets I for excavators and J for trucks, replace with actual sets.
