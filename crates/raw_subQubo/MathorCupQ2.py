@@ -167,8 +167,7 @@ def func(static_y: list):
     obj = (-total_revenue + 30000000000*budget_constraint
         + kw.qubo.sum(1000000000*assign_truck_constraints[f'tru_con{static_y[i]}'] for i in range(J))
         + kw.qubo.sum(100000000000*truck_constraints[f'tru2_con{j}'] for j in range(J))
-        # + kw.qubo.sum(100000000000*kw.qubo.sum(zi_cons[f'z{static_y[i]}_{h}'] for h in range(J) if et[static_y[i]][h] != 0) for i in range(J))
-           )
+        )
 
     obj = kw.qubo.make(obj)
     obj_ising = kw.qubo.cim_ising_model(obj)

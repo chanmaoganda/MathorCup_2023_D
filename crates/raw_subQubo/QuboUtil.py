@@ -58,7 +58,7 @@ class QuboUtil:
     def get_val(self, obj, sol_dict):
         return kaiwu.qubo.get_val(obj, sol_dict)
     
-    def read_nums_from_dict(self, source_dict: Dict[str, ndarray], sol_dict) -> Dict[str, float]:
+    def read_dict_nums_from_dict(self, source_dict: Dict, sol_dict) -> Dict:
         return {name : sum(self.get_val(bit, sol_dict) * (2 ** bit_index) for bit_index, bit in enumerate(bits)) for name, bits in source_dict.items()}
 
     def read_constraint_from_dict(self, constraint_dict: dict, sol_dict):
@@ -69,3 +69,12 @@ class QuboUtil:
     
     def read_num_from_dict(self, source_array: ndarray, sol_dict):
         return sum(self.get_val(bit_name, sol_dict) * (2 ** bit_index) for bit_index, bit_name in enumerate(source_array))
+
+    def read_expr_dict_from_dict(self, expr_dict: dict, sol_dict) -> dict:
+        return {key: self.get_val(value, sol_dict) for key, value in expr_dict.items()}
+
+    def get_qubo_dict(self, option_result, obj_ising_model):
+        cim_best = option_result * option_result[-1]
+        vars = obj_ising_model.get_variables()
+        return self.get_sol_dict(cim_best, vars)
+        

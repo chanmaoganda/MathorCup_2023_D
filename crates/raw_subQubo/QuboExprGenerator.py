@@ -50,52 +50,150 @@ class QuboExprGenerator:
         
         # Here we use other info to cal the truck number qubo dict
         truck_number_qubo_dict = { truck_index: self.qubo_util.kaiwu_sum_proxy(
-                  excavator_truck_match_qubo_binary_dict[(excavator_index, truck_index)] * excavator_number_qubo_dict[excavator_index]
+                  excavator_truck_match_qubo_binary_dict[(excavator_index, truck_index)] * self.qubo_util.make_qubo_ndarray_sum(excavator_number_qubo_dict[excavator_index])
                   * self.data.excavators_trucks_match_dict[excavator_index][truck_index] - excavator_half_use_qubo_binary_dict[(excavator_index, truck_index)] 
-                  for excavator_index in self.instance.excavator_list) for truck_index in instance.truck_list }
+                  for excavator_index in self.instance.excavator_list if et_match_dict[excavator_index][truck_index] != 0 )
+                                  for truck_index in instance.truck_list }
         return Variables(cost_constraint_num, 
                          excavator_number_qubo_dict, 
                          truck_number_qubo_dict, 
                          excavator_truck_match_qubo_binary_dict, 
                          excavator_half_use_qubo_binary_dict)
         
-    def excavator_purchase_cost(self) -> Generator:
+    def __excavator_purchase_cost(self) -> Generator:
         qubo = self.qubo_util
         data  = self.data
         return (data.excavator_precurement_cost[excavator_index] * qubo.make_qubo_ndarray_sum(self.variables.excavator_number_qubo_dict[excavator_index]) 
                 for excavator_index in self.instance.excavator_list)
     
-    def excavator_oil_cost(self) -> Generator:
+    def __excavator_oil_cost(self) -> Generator:
         qubo = self.qubo_util
         data  = self.data
         return (data.oil_price * data.excavator_oil_consumption[excavator_index] * qubo.make_qubo_ndarray_sum(self.variables.excavator_number_qubo_dict[excavator_index])
                 for excavator_index in self.instance.excavator_list)
     
-    def truck_oil_cost(self) -> Generator:
+    def __truck_oil_cost(self) -> Generator:
         qubo = self.qubo_util
         data  = self.data
-        return (data.oil_price * data.truck_oil_consumption[truck_index] * qubo.make_qubo_ndarray_sum(self.variables.truck_number_qubo_dict[truck_index])
+        
+        return (data.oil_price * data.truck_oil_consumption[truck_index] * self.variables.truck_number_qubo_dict[truck_index]
                 for truck_index in self.instance.truck_list)
     
-    def excavator_maintenance_cost(self) -> Generator:
+    def __excavator_maintenance_cost(self) -> Generator:
         qubo = self.qubo_util
         data  = self.data
         return (data.excavator_maintenance_cost[excavator_index] * qubo.make_qubo_ndarray_sum(self.variables.excavator_number_qubo_dict[excavator_index])
                 for excavator_index in self.instance.excavator_list)
     
-    def truck_maintenance_cost(self) -> Generator:
+    def __truck_maintenance_cost(self) -> Generator:
         qubo = self.qubo_util
         data  = self.data
-        return (data.truck_maintenance_cost[truck_index] * qubo.make_qubo_ndarray_sum(self.variables.truck_number_qubo_dict[truck_index])
+        return (data.truck_maintenance_cost[truck_index] * self.variables.truck_number_qubo_dict[truck_index]
                 for truck_index in self.instance.truck_list)
         
-    def produce_cost(self) -> Generator:
+    def __produce_cost(self) -> Generator:
         qubo = self.qubo_util
         data  = self.data
         return (data.workdays_per_month * data.excavator_produce_efficiency[excavator_index] * 
                 (qubo.make_qubo_ndarray_sum(self.variables.excavator_number_qubo_dict[excavator_index]) - 0.5 * 
                  self.variables.excavator_half_use_qubo_binary_dict[(excavator_index, truck_index)])
-                for excavator_index in self.instance.excavator_list for truck_index in self.instance.truck_list)
+                for excavator_index in self.instance.excavator_list for truck_index in self.instance.truck_list
+                    if self.data.excavators_trucks_match_dict[excavator_index][truck_index] != 0 )
         
     def total_revenue(self, produce, oil_consumption_cost, maintenance_cost, precurement_cost):
         return 160 * 60 * produce - 160 * 60 * oil_consumption_cost - 60 * maintenance_cost - 10000 * precurement_cost
+    
+    def __budget_constraint(self):
+        qubo = self.qubo_util
+        data  = self.data
+        precurement_cost = sum(qubo.make_qubo_ndarray_sum(self.variables.excavator_number_qubo_dict[excavator_index]) * data.excavator_precurement_cost[excavator_index] 
+                for excavator_index in self.instance.excavator_list)
+        return qubo.generate_qubo_constraint( 
+            (data.total_budget - qubo.make_qubo_ndarray_sum(self.variables.cost_constraint_num) - precurement_cost )
+                                    , 'budget_constraint')
+    
+    def __excavator_match_constraint(self) -> dict:
+        qubo = self.qubo_util
+        excavator_match_constraint_dict = {}
+        for excavator_index in self.instance.excavator_list:
+            excavator_match_constraint_dict[excavator_index] = qubo.generate_qubo_constraint(qubo.kaiwu_sum_proxy(
+                self.variables.excavator_truck_match_qubo_binary_dict[(excavator_index, truck_index)]
+                for truck_index in self.instance.truck_list 
+                if self.data.excavators_trucks_match_dict[excavator_index][truck_index] != 0) - 1,
+                f'excavator_{excavator_index}_match_constraint')
+        return excavator_match_constraint_dict
+    
+    def __truck_match_constraint(self) -> dict:
+        qubo = self.qubo_util
+        truck_match_constraint_dict = {}
+        for truck_index in self.instance.truck_list:
+            truck_match_constraint_dict[truck_index] = qubo.generate_qubo_constraint(qubo.kaiwu_sum_proxy(
+                self.variables.excavator_truck_match_qubo_binary_dict[(excavator_index, truck_index)]
+                for excavator_index in self.instance.excavator_list 
+                if self.data.excavators_trucks_match_dict[excavator_index][truck_index] != 0) - 1,
+                f'truck_{truck_index}_match_constraint')
+        return truck_match_constraint_dict
+    
+    def __half_use_constraint(self) -> dict:
+        qubo = self.qubo_util
+        et_match_dict = self.data.excavators_trucks_match_dict
+        half_use_constraint_dict = {}
+        for excavator_index in self.instance.excavator_list:
+            for truck_index in self.instance.truck_list:
+                if self.data.excavators_trucks_match_dict[excavator_index][truck_index] == 0:
+                    continue
+                half_use_constraint_dict[(excavator_index, truck_index)] = qubo.generate_qubo_constraint(
+                    qubo.make_qubo_ndarray_sum(self.variables.excavator_number_qubo_dict[excavator_index]) 
+                    - et_match_dict[excavator_index][truck_index] * self.variables.excavator_truck_match_qubo_binary_dict[(excavator_index, truck_index)]
+                    - self.variables.excavator_half_use_qubo_binary_dict[(excavator_index, truck_index)],
+                    f'excavator_{excavator_index}_half_use_truck_{truck_index}_constraint')
+        return half_use_constraint_dict
+    
+    def qubo_expr_object(self):
+        qubo = self.qubo_util
+        budget_param = 30000000000
+        excavator_param = 1000000000
+        truck_param = 100000000000
+        
+        produce = qubo.kaiwu_sum_proxy(self.__produce_cost())
+        oil_consumption_cost = qubo.kaiwu_sum_proxy(self.__truck_oil_cost()) + qubo.kaiwu_sum_proxy(self.__excavator_oil_cost())
+        maintenance_cost = qubo.kaiwu_sum_proxy(self.__excavator_maintenance_cost()) + qubo.kaiwu_sum_proxy(self.__truck_maintenance_cost())
+        precurement_cost = qubo.kaiwu_sum_proxy(self.__excavator_purchase_cost())
+        total_revenue = self.total_revenue(produce, oil_consumption_cost, maintenance_cost, precurement_cost)
+        
+        budget_constraint = self.__budget_constraint()
+        excavator_match_constraint_dict = self.__excavator_match_constraint()
+        truck_match_constraint_dict = self.__truck_match_constraint()
+        half_use_constraint_dict = self.__half_use_constraint()
+        
+        qubo_solution = QuboSolution(self.variables, produce, oil_consumption_cost, maintenance_cost, precurement_cost, total_revenue, budget_constraint, excavator_match_constraint_dict, truck_match_constraint_dict, half_use_constraint_dict)
+        
+        object = - total_revenue + budget_param * budget_constraint + excavator_param * sum(excavator_match_constraint_dict.values()) \
+         + truck_param * sum(truck_match_constraint_dict.values())
+        return object, qubo_solution
+
+    def solve_ising(self):
+        qubo = self.qubo_util
+
+        qubo_object, qubo_solution = self.qubo_expr_object()
+        
+        object = qubo.qubo_make_proxy(qubo_object)
+        obj_ising = qubo.cim_ising_model_proxy(object)
+        matrix = obj_ising.get_ising()["ising"]
+        
+        output = qubo.cim_simulator(matrix,
+    	    pump=1.3,
+            noise=0.3,
+            laps=8000,
+            dt=0.1,
+            normalization=1.2,
+            iterations=100
+        )
+        
+        options = qubo.optimal_sampler(matrix, output)
+        for index in range(200):
+            qubo_dict = qubo.get_qubo_dict(options[0][index], obj_ising)
+
+            solution_value = qubo_solution.get_value_from_qubo_dict(qubo_dict)
+            solution_value.print_solution()
+        return options

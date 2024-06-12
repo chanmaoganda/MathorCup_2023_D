@@ -19,8 +19,6 @@ class SubQuboSolver:
         self.qubo_expr_generator = QuboExprGenerator(self.qubo_util, instance)
         
 
-    def generate_qubo_constraints(self, variables: Variables):
-        qubo = self.qubo_util
-        data = self.data
-        
+    def solve(self):
+        self.qubo_expr_generator.solve_ising()
         
