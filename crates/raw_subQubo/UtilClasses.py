@@ -104,16 +104,17 @@ class SolutionValue:
         print("Excavator Truck Match Qubo Binary Dict: ", self.excavator_truck_match_qubo_binary_dict)
         print("Excavator Half Use Qubo Binary Dict: ", self.excavator_half_use_qubo_binary_dict)
 
-        print("Produce Value: ", self.produce_value)
-        print("Oil Consumption Cost Value: ", self.oil_consumption_cost_value)
-        print("Maintenance Cost Value: ", self.maintenance_cost_value)
+        # print("Produce Value: ", self.produce_value)
+        # print("Oil Consumption Cost Value: ", self.oil_consumption_cost_value)
+        # print("Maintenance Cost Value: ", self.maintenance_cost_value)
         print("Pre-Curement Cost Value: ", self.precurement_cost_value)
         print("Total Revenue Value: ", self.total_revenue_value)
         print("Budget Constraint Value: ", self.budget_constraint_value)
         print("Excavator Match Constraint Dict Value: ", self.excavator_match_constraint_dict_value)
         print("Truck Match Constraint Dict Value: ", self.truck_match_constraint_dict_value)
         print("Half Use Constraint Dict Value: ", self.half_use_constraint_dict_value)
-
+        print("=================================================================================")
+        print("")
 class QuboSolution:
     """
     I need to store the solution of the problem, including VARIABLES and CONSTRAINTS.

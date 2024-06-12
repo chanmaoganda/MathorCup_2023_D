@@ -191,7 +191,7 @@ class QuboExprGenerator:
         )
         
         options = qubo.optimal_sampler(matrix, output)
-        for index in range(200):
+        for index in range(20):
             qubo_dict = qubo.get_qubo_dict(options[0][index], obj_ising)
 
             solution_value = qubo_solution.get_value_from_qubo_dict(qubo_dict)
