@@ -36,10 +36,10 @@ class QuboExprGenerator:
         instance = self.instance
         et_match_dict = self.data.excavators_trucks_match_dict
         
-        cost_constraint_num = qubo.generate_qubo_ndarray_from_number(self.data.total_budget, 'cost_constraint')
+        cost_constraint_num = qubo.ndarray_from_number(self.data.total_budget, 'cost_constraint')
         
         excavator_number_dict = self.__generate_excavator_max_numbers()
-        excavator_number_qubo_dict = {excavator_index : qubo.generate_qubo_ndarray_from_number(max_number, f'excavator_{excavator_index}') 
+        excavator_number_qubo_dict = {excavator_index : qubo.ndarray_from_number(max_number, f'excavator_{excavator_index}') 
                                       for excavator_index, max_number in excavator_number_dict.items()}
         excavator_truck_match_qubo_binary_dict = {(excavator_index, truck_index) : qubo.generate_qubo_binary(f'excavator_{excavator_index}_truck_{truck_index}') 
                                                   for excavator_index in instance.excavator_list for truck_index in instance.truck_list 
@@ -50,7 +50,7 @@ class QuboExprGenerator:
         
         # Here we use other info to cal the truck number qubo dict
         truck_number_qubo_dict = { truck_index: self.qubo_util.kaiwu_sum_proxy(
-                  excavator_truck_match_qubo_binary_dict[(excavator_index, truck_index)] * self.qubo_util.make_qubo_ndarray_sum(excavator_number_qubo_dict[excavator_index])
+                  excavator_truck_match_qubo_binary_dict[(excavator_index, truck_index)] * self.qubo_util.cal_ndarray_sum(excavator_number_qubo_dict[excavator_index])
                   * self.data.excavators_trucks_match_dict[excavator_index][truck_index] - excavator_half_use_qubo_binary_dict[(excavator_index, truck_index)] 
                   for excavator_index in self.instance.excavator_list if et_match_dict[excavator_index][truck_index] != 0 )
                                   for truck_index in instance.truck_list }
@@ -63,13 +63,13 @@ class QuboExprGenerator:
     def __excavator_purchase_cost(self) -> Generator:
         qubo = self.qubo_util
         data  = self.data
-        return (data.excavator_precurement_cost[excavator_index] * qubo.make_qubo_ndarray_sum(self.variables.excavator_number_qubo_dict[excavator_index]) 
+        return (data.excavator_precurement_cost[excavator_index] * qubo.cal_ndarray_sum(self.variables.excavator_number_qubo_dict[excavator_index]) 
                 for excavator_index in self.instance.excavator_list)
     
     def __excavator_oil_cost(self) -> Generator:
         qubo = self.qubo_util
         data  = self.data
-        return (data.oil_price * data.excavator_oil_consumption[excavator_index] * qubo.make_qubo_ndarray_sum(self.variables.excavator_number_qubo_dict[excavator_index])
+        return (data.oil_price * data.excavator_oil_consumption[excavator_index] * qubo.cal_ndarray_sum(self.variables.excavator_number_qubo_dict[excavator_index])
                 for excavator_index in self.instance.excavator_list)
     
     def __truck_oil_cost(self) -> Generator:
@@ -82,7 +82,7 @@ class QuboExprGenerator:
     def __excavator_maintenance_cost(self) -> Generator:
         qubo = self.qubo_util
         data  = self.data
-        return (data.excavator_maintenance_cost[excavator_index] * qubo.make_qubo_ndarray_sum(self.variables.excavator_number_qubo_dict[excavator_index])
+        return (data.excavator_maintenance_cost[excavator_index] * qubo.cal_ndarray_sum(self.variables.excavator_number_qubo_dict[excavator_index])
                 for excavator_index in self.instance.excavator_list)
     
     def __truck_maintenance_cost(self) -> Generator:
@@ -95,7 +95,7 @@ class QuboExprGenerator:
         qubo = self.qubo_util
         data  = self.data
         return (data.workdays_per_month * data.excavator_produce_efficiency[excavator_index] * 
-                (qubo.make_qubo_ndarray_sum(self.variables.excavator_number_qubo_dict[excavator_index]) - 0.5 * 
+                (qubo.cal_ndarray_sum(self.variables.excavator_number_qubo_dict[excavator_index]) - 0.5 * 
                  self.variables.excavator_half_use_qubo_binary_dict[(excavator_index, truck_index)])
                 for excavator_index in self.instance.excavator_list for truck_index in self.instance.truck_list
                     if self.data.excavators_trucks_match_dict[excavator_index][truck_index] != 0 )
@@ -106,10 +106,10 @@ class QuboExprGenerator:
     def __budget_constraint(self):
         qubo = self.qubo_util
         data  = self.data
-        precurement_cost = sum(qubo.make_qubo_ndarray_sum(self.variables.excavator_number_qubo_dict[excavator_index]) * data.excavator_precurement_cost[excavator_index] 
+        precurement_cost = sum(qubo.cal_ndarray_sum(self.variables.excavator_number_qubo_dict[excavator_index]) * data.excavator_precurement_cost[excavator_index] 
                 for excavator_index in self.instance.excavator_list)
         return qubo.generate_qubo_constraint( 
-            (data.total_budget - qubo.make_qubo_ndarray_sum(self.variables.cost_constraint_num) - precurement_cost )
+            (data.total_budget - qubo.cal_ndarray_sum(self.variables.cost_constraint_num) - precurement_cost )
                                     , 'budget_constraint')
     
     def __excavator_match_constraint(self) -> dict:
@@ -143,7 +143,7 @@ class QuboExprGenerator:
                 if self.data.excavators_trucks_match_dict[excavator_index][truck_index] == 0:
                     continue
                 half_use_constraint_dict[(excavator_index, truck_index)] = qubo.generate_qubo_constraint(
-                    qubo.make_qubo_ndarray_sum(self.variables.excavator_number_qubo_dict[excavator_index]) 
+                    qubo.cal_ndarray_sum(self.variables.excavator_number_qubo_dict[excavator_index]) 
                     - et_match_dict[excavator_index][truck_index] * self.variables.excavator_truck_match_qubo_binary_dict[(excavator_index, truck_index)]
                     - self.variables.excavator_half_use_qubo_binary_dict[(excavator_index, truck_index)],
                     f'excavator_{excavator_index}_half_use_truck_{truck_index}_constraint')

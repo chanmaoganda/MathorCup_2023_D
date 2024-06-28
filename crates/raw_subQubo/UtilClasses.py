@@ -149,22 +149,22 @@ class QuboSolution:
         
     def get_value_from_qubo_dict(self, qubo_dict) -> SolutionValue:
         qubo_util = QuboUtil()
-        excavator_number_qubo_dict = qubo_util.read_dict_nums_from_dict(self.excavator_number_qubo_dict, qubo_dict)
-        truck_number_qubo_dict = qubo_util.read_expr_dict_from_dict(self.truck_number_qubo_dict, qubo_dict)
-        excavator_truck_match_qubo_binary_dict = qubo_util.read_bits_from_dict(self.excavator_truck_match_qubo_binary_dict, qubo_dict)
-        excavator_half_use_qubo_binary_dict = qubo_util.read_bits_from_dict(self.excavator_half_use_qubo_binary_dict, qubo_dict)
+        excavator_number_qubo_dict = qubo_util.read_dict_from_solution(self.excavator_number_qubo_dict, qubo_dict)
+        truck_number_qubo_dict = qubo_util.read_dict_from_solution(self.truck_number_qubo_dict, qubo_dict)
+        excavator_truck_match_qubo_binary_dict = qubo_util.read_dict_from_solution(self.excavator_truck_match_qubo_binary_dict, qubo_dict)
+        excavator_half_use_qubo_binary_dict = qubo_util.read_dict_from_solution(self.excavator_half_use_qubo_binary_dict, qubo_dict)
         
-        cost_constraint_num = qubo_util.read_num_from_dict(self.cost_constraint_num, qubo_dict)
+        cost_constraint_num = qubo_util.read_value_from_solution(self.cost_constraint_num, qubo_dict)
         
-        produce_value = qubo_util.get_val(self.produce, qubo_dict)
-        oil_consumption_cost_value = qubo_util.get_val(self.oil_consumption_cost, qubo_dict)
-        maintenance_cost_value = qubo_util.get_val(self.maintenance_cost, qubo_dict)
-        precurement_cost_value = qubo_util.get_val(self.precurement_cost, qubo_dict)
-        total_revenue_value = qubo_util.get_val(self.total_revenue, qubo_dict)
-        budget_constraint_value = qubo_util.get_val(self.budget_constraint, qubo_dict)
-        excavator_match_constraint_dict_value = qubo_util.read_constraint_from_dict(self.excavator_match_constraint_dict, qubo_dict)
-        truck_match_constraint_dict_value = qubo_util.read_constraint_from_dict(self.truck_match_constraint_dict, qubo_dict)
-        half_use_constraint_dict_value = qubo_util.read_constraint_from_dict(self.half_use_constraint_dict, qubo_dict)
+        produce_value = qubo_util.read_value_from_solution(self.produce, qubo_dict)
+        oil_consumption_cost_value = qubo_util.read_value_from_solution(self.oil_consumption_cost, qubo_dict)
+        maintenance_cost_value = qubo_util.read_value_from_solution(self.maintenance_cost, qubo_dict)
+        precurement_cost_value = qubo_util.read_value_from_solution(self.precurement_cost, qubo_dict)
+        total_revenue_value = qubo_util.read_value_from_solution(self.total_revenue, qubo_dict)
+        budget_constraint_value = qubo_util.read_value_from_solution(self.budget_constraint, qubo_dict)
+        excavator_match_constraint_dict_value = qubo_util.read_dict_from_solution(self.excavator_match_constraint_dict, qubo_dict)
+        truck_match_constraint_dict_value = qubo_util.read_dict_from_solution(self.truck_match_constraint_dict, qubo_dict)
+        half_use_constraint_dict_value = qubo_util.read_dict_from_solution(self.half_use_constraint_dict, qubo_dict)
         return SolutionValue(cost_constraint_num, excavator_number_qubo_dict, truck_number_qubo_dict, 
                              excavator_truck_match_qubo_binary_dict, excavator_half_use_qubo_binary_dict, 
                              produce_value, oil_consumption_cost_value, maintenance_cost_value, 
