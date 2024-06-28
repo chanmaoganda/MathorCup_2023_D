@@ -104,9 +104,9 @@ class SolutionValue:
         print("Excavator Truck Match Qubo Binary Dict: ", self.excavator_truck_match_qubo_binary_dict)
         print("Excavator Half Use Qubo Binary Dict: ", self.excavator_half_use_qubo_binary_dict)
 
-        # print("Produce Value: ", self.produce_value)
-        # print("Oil Consumption Cost Value: ", self.oil_consumption_cost_value)
-        # print("Maintenance Cost Value: ", self.maintenance_cost_value)
+        print("Produce Value: ", self.produce_value)
+        print("Oil Consumption Cost Value: ", self.oil_consumption_cost_value)
+        print("Maintenance Cost Value: ", self.maintenance_cost_value)
         print("Pre-Curement Cost Value: ", self.precurement_cost_value)
         print("Total Revenue Value: ", self.total_revenue_value)
         print("Budget Constraint Value: ", self.budget_constraint_value)

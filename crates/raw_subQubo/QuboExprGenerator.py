@@ -151,9 +151,9 @@ class QuboExprGenerator:
     
     def qubo_expr_object(self):
         qubo = self.qubo_util
-        budget_param = 30000000000
-        excavator_param = 1000000000
-        truck_param = 100000000000
+        BUDGET_PARAM    = 30000000000
+        EXCAVATOR_PARAM = 100000000000
+        TRUCK_PARAM     = 100000000000
         
         produce = qubo.kaiwu_sum_proxy(self.__produce_cost())
         oil_consumption_cost = qubo.kaiwu_sum_proxy(self.__truck_oil_cost()) + qubo.kaiwu_sum_proxy(self.__excavator_oil_cost())
@@ -168,8 +168,8 @@ class QuboExprGenerator:
         
         qubo_solution = QuboSolution(self.variables, produce, oil_consumption_cost, maintenance_cost, precurement_cost, total_revenue, budget_constraint, excavator_match_constraint_dict, truck_match_constraint_dict, half_use_constraint_dict)
         
-        object = - total_revenue + budget_param * budget_constraint + excavator_param * sum(excavator_match_constraint_dict.values()) \
-         + truck_param * sum(truck_match_constraint_dict.values())
+        object = - total_revenue + BUDGET_PARAM * budget_constraint + EXCAVATOR_PARAM * sum(excavator_match_constraint_dict.values()) \
+         + TRUCK_PARAM * sum(truck_match_constraint_dict.values())
         return object, qubo_solution
 
     def solve_ising(self):

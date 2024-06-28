@@ -1,5 +1,6 @@
 import kaiwu as kw
 from math import log2, ceil
+from variables import Variables
 
 def to_bin(num):
     """
@@ -12,48 +13,44 @@ def to_bin(num):
 
 
 # 成本数据
-costs = [100, 140, 200, 320]
-total_budget = 1760
-I = 4
+glb_costs = [100, 140, 200, 320]
+glb_total_budget = 1760
+glb_V = [0.9,1.2,0.8,2.1]  # Excavator bucket capacity
+glb_R =[190,175,165,150]  # Excavator operational efficiency
+glb_C_oil_i = [28,30,34,38] # Excavator oil consumption
+glb_C_cai = [100,140,300,320]  # Excavator procurement cost
+glb_C_ren_i = [7000,7500,8500,9000]  # Excavator labor cost
+glb_C_wei_i =[1000,1500,2000,3000]  # Excavator maintenance cost
 
-class Variables:
-    def __init__(self, n, et, V, R, C_oil_i, C_cai, C_ren_i, C_wei_i, C_oil_j, C_ren_j, C_wei_j, static_y):
-        self.n = n
-        self.et = et
-        self.V = V
-        self.R = R
-        self.C_oil_i = C_oil_i
-        self.C_cai = C_cai
-        self.C_ren_i = C_ren_i
-        self.C_wei_i = C_wei_i
-        self.C_oil_j = C_oil_j
-        self.C_ren_j = C_ren_j
-        self.C_wei_j = C_wei_j
-        self.static_y = static_y
-        self.I = len(static_y)
-        self.total_budget = total_budget
-        self.costs = costs
+glb_C_oil_j = [18,22,27]  # Truck oil consumption
+glb_C_ren_j = [6000,7000,8000]  # Truck labor cost
+glb_C_wei_j =[2000,3000,4000]  # Truck maintenance cost
 
-# Placeholder parameters, replace with actual data
-V = [0.9,1.2,0.8,2.1]  # Excavator bucket capacity
-R =[190,175,165,150]  # Excavator operational efficiency
-C_oil_i = [28,30,34,38] # Excavator oil consumption
-C_cai = [100,140,300,320]  # Excavator procurement cost
-C_ren_i = [7000,7500,8500,9000]  # Excavator labor cost
-C_wei_i =[1000,1500,2000,3000]  # Excavator maintenance cost
+glb_n = [7,7,3] # Number of trucks of type j
+glb_et = [[1, 0, 0], [2, 1, 0], [2, 2, 1], [0, 2, 1]]
+glb_static_y = [0,1,3]
 
-C_oil_j = [18,22,27]  # Truck oil consumption
-C_ren_j = [6000,7000,8000]  # Truck labor cost
-C_wei_j =[2000,3000,4000]  # Truck maintenance cost
+variables = Variables(glb_n, glb_et, glb_V, glb_R, glb_C_oil_i, glb_C_cai, glb_C_ren_i, glb_C_wei_i
+                      , glb_C_oil_j, glb_C_ren_j, glb_C_wei_j, glb_static_y, glb_total_budget, glb_costs)
 
+def sub_qubo(variables: Variables):
+    static_y = variables.static_y
+    J = variables.J
+    I = variables.I
+    et = variables.et
+    costs = variables.costs
+    n = variables.n
+    C_cai = variables.C_cai
+    
+    C_ren_i = variables.C_ren_i
+    C_wei_i = variables.C_wei_i
+    
+    C_oil_i = variables.C_oil_i
+    C_oil_j = variables.C_oil_j
 
-
-n = [7,7,3] # Number of trucks of type j
-J = len(n)
-et = [[1, 0, 0], [2, 1, 0], [2, 2, 1], [0, 2, 1]]
-static_y = [0,1,3]
-
-def sub_qubo(static_y: list):
+    V = variables.V
+    R = variables.R
+    
     cnt = 0
     minicost = 0;
     for i in static_y:
@@ -299,7 +296,7 @@ def sub_qubo(static_y: list):
 
                 print(f"===================================================={wk}")
 
-                real_obj, realwc, realkc, realzii = getSolution(wk, machine_values)
+                real_obj, realwc, realkc, realzii = getSolution(wk, machine_values, variables)
 
                 if real_obj > globalObj:
                     globalObj = real_obj
@@ -400,13 +397,26 @@ def sub_qubo(static_y: list):
                     if int(kw.qubo.get_val(kij[f'k_{i}_{j}'], sol_dict)) == 1:
                         wk.append(j)
 
-    realObjvalue, realWC, realKC, realzi = getSolution(wk, machine_values)
+    realObjvalue, realWC, realKC, realzi = getSolution(wk, machine_values, variables)
     print(realObjvalue)
     print(realWC)
     print(realKC)
     print(realzi)
 
-def getSolution(static_k, machine_values):
+def getSolution(static_k, machine_values, variables: Variables):
+    et = variables.et
+    static_y = variables.static_y
+    n = variables.n
+    V = variables.V
+    R = variables.R
+    C_oil_i = variables.C_oil_i
+    C_ren_i = variables.C_ren_i
+    C_wei_i = variables.C_wei_i
+    C_cai = variables.C_cai
+    C_oil_j = variables.C_oil_j
+    C_ren_j = variables.C_ren_j
+    C_wei_j = variables.C_wei_j
+
     real_obj = 0
     ct = 0
     wc = []
@@ -457,5 +467,5 @@ def getSolution(static_k, machine_values):
     return real_obj, wc, kc, zii
 
 
-sub_qubo(static_y)
+sub_qubo(variables)
 
