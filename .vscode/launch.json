@@ -34,6 +34,13 @@
             "console": "integratedTerminal"
         },
         {
+            "name": "subqubo_solver.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "./crates/subqubo_rough/MathorCupQ2.py",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Python Current File",
             "type": "debugpy",
             "request": "launch",
