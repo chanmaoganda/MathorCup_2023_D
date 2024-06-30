@@ -6,13 +6,19 @@ def to_bin(num):
     return bin
 
 class SubQuboVariable:
-    def __init__(self, n, static_y):
+    def __init__(self, n, static_y, current_budget):
         self.n = n
         self.static_y = static_y
         self.I = len(static_y)
         self.J = len(n)
+        self.current_budget = current_budget
         
-        
+class SubQuboSolution:
+    def __init__(self, object, static_k, n, match_sequence):
+        self.object = object
+        self.n = n
+        self.static_k = static_k
+        self.match_sequence = match_sequence
 
 class SubQuboSolver:
     def __init__(self, et, V, R, C_oil_i, C_cai, C_ren_i, C_wei_i, C_oil_j, C_ren_j, C_wei_j, total_budget, costs):
@@ -28,12 +34,18 @@ class SubQuboSolver:
         self.C_wei_j = C_wei_j
         self.total_budget = total_budget
         self.costs = costs
+        
+    def sub_qubo_best_solve(self, qubo_variables: SubQuboVariable):
+        solutions = []
+        for _ in range(4):
+            solutions.append(self.solve(qubo_variables))
+        return max(solutions, key = lambda x: x.object)
     
     def solve(self, qubo_variables: SubQuboVariable):
         static_y = qubo_variables.static_y
         J = qubo_variables.J
-        I = qubo_variables.I
         n = qubo_variables.n
+        total_budget = qubo_variables.current_budget
         
         et = self.et
         costs = self.costs
@@ -54,8 +66,6 @@ class SubQuboSolver:
         for i in static_y:
             minicost += costs[i]
         print(f'minicost: {minicost}')
-
-        total_budget = 2400
 
         usedCosts = []
         for i in static_y:
@@ -308,95 +318,9 @@ class SubQuboSolver:
         print(f"===========================================")
         print(globalObj)
         print(globalwc)
-        print(globalzi)
         print(globalkc)
         print(globalwk)
-
-        best = opt[0][0]
-        # If the linear term variable is -1, perform a flip
-        cim_best = best * best[-1]
-        # Get the list of variable names
-        vars = obj_ising.get_variables()
-        # Substitute the spin vector and obtain the result dictionary
-        sol_dict = kw.qubo.get_sol_dict(cim_best, vars)
-        # print(f"number of solution {count}")
-        print(sol_dict)
-
-        obj_val = kw.qubo.get_val(obj, sol_dict)
-        objective_function_val = kw.qubo.get_val(total_revenue, sol_dict)
-        budget_constraint_val = kw.qubo.get_val(budget_constraint, sol_dict)
-        
-        zi_cons_val = {}
-        kij_cons_val = {}
-        kij_cons_val1 = {}
-        for i in range(3):
-            kij_cons_val[f'tru_con{static_y[i]}'] = kw.qubo.get_val(assign_truck_constraints[f'tru_con{static_y[i]}'], sol_dict)
-            for j in range(J):
-                if et[static_y[i]][j]!= 0:
-                    zi_cons_val[f'z{static_y[i]}_{j}'] = kw.qubo.get_val(zi_cons[f'z{static_y[i]}_{j}'], sol_dict)
-
-        for j in range(J):
-            kij_cons_val1[f'tru2_con{j}'] = kw.qubo.get_val(truck_constraints[f'tru2_con{j}'], sol_dict)
-
-
-        # 从QUBO解中获取每种挖掘机的数量
-        machine_values = {}
-        for machine, bits in machine_vars.items():
-            # 计算从二进制到整数的转换
-            value = sum(kw.qubo.get_val(bit, sol_dict) * (2 ** j) for j, bit in enumerate(bits))
-            machine_values[machine] = value
-
-        print('Final::: 挖机和矿车匹配关系:')
-        for k, v in kij.items():
-            print(f"{k}: {v}: {kw.qubo.get_val(v, sol_dict)}")
-
-        # 初始化总成本和总利润变量
-        total_cost = 0
-        total_profit = 0
-
-        # 遍历每种挖掘机
-        for i, (machine, quantity) in enumerate(machine_values.items()):
-            # 计算总成本
-            total_cost += quantity * costs[static_y[i]]
-        # 输出结果
-        print(f"总成本: {total_cost}")
-        # 检查是否超出预算
-        if total_cost > total_budget:
-            print("超出预算！")
-        else:
-            print("未超出预算。")
-
-
-        print(f"obj Value: {obj_val}")
-        print(f"objective_function Value: {objective_function_val}")
-        print(f"budget_constraint Value: {budget_constraint_val}")
-        print(f"zi_cons Value: {zi_cons_val}")
-        print(f"truck_constraints Value1: {kij_cons_val}")
-        print(f"truck_constraints Value2: {kij_cons_val1}")
-
-        print("每种挖掘机的购买数量:")
-        for k, v in machine_values.items():
-            print(f"{k}: {v}")
-
-        # 有多少预算没有用完
-        x_val = kw.qubo.get_array_val(cost_con_s, sol_dict)
-        value = sum(x_val[j] * (2 ** j) for j, bit in enumerate(x_val))
-        print(x_val)
-        print(value)
-        print()
-
-        wk = []
-        for i in static_y:
-            for j in range(J):
-                if et[i][j] != 0:
-                    if int(kw.qubo.get_val(kij[f'k_{i}_{j}'], sol_dict)) == 1:
-                        wk.append(j)
-
-        realObjvalue, realWC, realKC, realzi = self.getSolution(wk, machine_values, qubo_variables)
-        print(realObjvalue)
-        print(realWC)
-        print(realKC)
-        print(realzi)
+        return SubQuboSolution(globalObj, globalwc, globalkc, globalwk)
 
     def getSolution(self, static_k, machine_values, qubo_variables: SubQuboVariable):
         static_y = qubo_variables.static_y
